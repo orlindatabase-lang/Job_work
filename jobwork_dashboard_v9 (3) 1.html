@@ -1,0 +1,1824 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Production Planning & Control (PPC)</title>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;0,700;1,400;1,600&family=Nunito:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:       #fdf6ec;
+  --surface:  #fffcf7;
+  --surface2: #faf0e0;
+  --surface3: #f5e6cc;
+  --border:   rgba(160,120,80,.2);
+  --border2:  rgba(160,120,80,.12);
+
+  --teal:        #e07b2a;
+  --teal-dim:    #c0522a;
+  --teal-light:  rgba(224,123,42,.08);
+  --teal-mid:    #fde0b8;
+  --accent:      #3d5a8a;
+  --accent-light:rgba(61,90,138,.08);
+  --accent-mid:  rgba(61,90,138,.2);
+
+  --green:       #2e8b6e;
+  --green-light: rgba(46,139,110,.1);
+  --green-mid:   rgba(46,139,110,.25);
+
+  --warn:        #d4860b;
+  --warn-light:  rgba(212,134,11,.1);
+  --warn-mid:    rgba(212,134,11,.25);
+
+  --danger:      #b94040;
+  --danger-light:rgba(185,64,64,.1);
+  --danger-mid:  rgba(185,64,64,.25);
+
+  --purple:      #3d5a8a;
+  --purple-light:rgba(61,90,138,.08);
+
+  --text:  #2a1f14;
+  --text2: #6b5744;
+  --muted: #a08c78;
+  --muted2:#c4b09a;
+
+  --r-sm: 6px;
+  --r-md: 10px;
+  --r-lg: 14px;
+
+  --shadow-xs: 0 1px 2px rgba(120,70,20,.06);
+  --shadow-sm: 0 1px 4px rgba(120,70,20,.08), 0 1px 2px rgba(120,70,20,.04);
+  --shadow-md: 0 4px 12px rgba(120,70,20,.12), 0 2px 4px rgba(120,70,20,.06);
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Nunito', sans-serif;
+  font-size: 13px;
+  line-height: 1.5;
+  min-height: 100vh;
+  padding: 20px 24px 60px;
+  -webkit-font-smoothing: antialiased;
+}
+
+body::before {
+  content: '';
+  position: fixed; inset: 0; z-index: 0; pointer-events: none;
+  background-image:
+    repeating-linear-gradient(0deg,rgba(180,130,80,.025) 0px,rgba(180,130,80,.025) 1px,transparent 1px,transparent 20px),
+    repeating-linear-gradient(90deg,rgba(180,130,80,.025) 0px,rgba(180,130,80,.025) 1px,transparent 1px,transparent 20px);
+  background-size: 20px 20px;
+}
+body > * { position: relative; z-index: 1; }
+
+/* ── HEADER ── */
+.header {
+  display: flex; align-items: center; justify-content: space-between;
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--r-lg); padding: 14px 20px;
+  margin-bottom: 20px; box-shadow: var(--shadow-sm);
+}
+.header-left { display: flex; align-items: center; gap: 12px; }
+.hicon {
+  width: 42px; height: 42px; flex-shrink: 0;
+  background: linear-gradient(135deg, var(--teal), var(--accent));
+  border-radius: var(--r-md); display: flex; align-items: center; justify-content: center;
+  font-size: 20px;
+}
+.header-left h1 { font-size: 20px; font-weight: 700; letter-spacing: .2px; color: var(--text); font-family: 'Cormorant Garamond', serif; }
+.header-left p  { font-size: 10px; color: var(--muted); margin-top: 1px; font-family: 'JetBrains Mono', monospace; }
+.header-right { display: flex; gap: 8px; align-items: center; }
+.live-badge {
+  display: flex; align-items: center; gap: 5px;
+  padding: 4px 12px; border-radius: 20px;
+  font-size: 11px; font-family: 'JetBrains Mono', monospace; font-weight: 500;
+  background: var(--green-light); color: var(--green);
+  border: 1px solid var(--green-mid);
+}
+.live-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--green); animation: pulse 2s infinite; }
+@keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: .4; } }
+.date-badge {
+  padding: 4px 12px; border-radius: 20px;
+  font-size: 11px; font-family: 'JetBrains Mono', monospace;
+  background: var(--text); color: #fff;
+}
+
+/* ── STEP PANEL ── */
+.step-panel {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--r-lg); box-shadow: var(--shadow-sm);
+  margin-bottom: 16px; overflow: visible;
+}
+.step-hdr {
+  background: linear-gradient(135deg, var(--teal), var(--accent));
+  padding: 12px 20px; display: flex; align-items: center; gap: 12px;
+  border-radius: var(--r-lg) var(--r-lg) 0 0;
+}
+.step-hdr-num {
+  width: 24px; height: 24px; border-radius: 50%;
+  background: rgba(255,255,255,.25); color: #fff;
+  font-size: 11px; font-weight: 800; display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0; font-family: 'JetBrains Mono', monospace;
+}
+.step-hdr h2 { font-size: 12px; font-weight: 700; color: #fff; letter-spacing: -.1px; }
+.step-hdr p  { font-size: 10px; color: rgba(255,255,255,.7); margin-top: 1px; font-family: 'JetBrains Mono', monospace; }
+.step-body { padding: 16px 20px; overflow: visible; }
+
+/* ── JOB TYPE CARDS ── */
+.job-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+.job-card {
+  border: 1.5px solid var(--border);
+  border-radius: var(--r-md); padding: 16px 12px;
+  background: var(--surface2); cursor: pointer;
+  text-align: center; transition: all .18s; position: relative;
+  overflow: hidden;
+}
+.job-card::before {
+  content: ''; position: absolute; inset: 0;
+  background: linear-gradient(135deg, var(--teal-light), transparent);
+  opacity: 0; transition: opacity .2s;
+}
+.job-card:hover { border-color: var(--teal); transform: translateY(-2px); box-shadow: var(--shadow-md); }
+.job-card:hover::before { opacity: 1; }
+.job-card.active {
+  border-color: var(--teal); background: var(--teal-light);
+  box-shadow: 0 0 0 2px var(--teal-mid), var(--shadow-sm);
+}
+.job-card.active::before { opacity: 1; }
+.jc-icon { font-size: 26px; margin-bottom: 8px; display: block; position: relative; z-index: 1; }
+.jc-name {
+  font-size: 12px; font-weight: 800; color: var(--text);
+  margin-bottom: 3px; position: relative; z-index: 1;
+}
+.jc-tag {
+  font-size: 9px; font-family: 'JetBrains Mono', monospace;
+  color: var(--teal); background: var(--teal-light);
+  border: 1px solid var(--teal-mid);
+  padding: 2px 7px; border-radius: 20px;
+  display: inline-block; position: relative; z-index: 1;
+}
+.job-card.active .jc-name { color: var(--teal-dim); }
+.jc-check {
+  position: absolute; top: 8px; right: 8px;
+  width: 16px; height: 16px; border-radius: 50%;
+  background: var(--teal); color: #fff;
+  font-size: 9px; display: none; align-items: center; justify-content: center;
+}
+.job-card.active .jc-check { display: flex; }
+
+/* ── CONFIG FORM ── */
+.config-grid { display: grid; grid-template-columns: 1.6fr 1.2fr 0.8fr 0.8fr auto; gap: 14px; align-items: end; overflow: visible; position: relative; z-index: 100; }
+
+/* ── DESIGN SEARCH ── */
+.design-wrap { position: relative; z-index: 200; }
+.design-input-row {
+  display: flex; align-items: center;
+  border: 1px solid var(--border); border-radius: var(--r-md);
+  background: var(--surface2);
+  transition: border-color .15s, background .15s; position: relative;
+}
+.design-input-row:focus-within { border-color: var(--teal); background: #fff; }
+.design-search-icon { padding: 0 8px 0 11px; color: var(--muted); font-size: 13px; flex-shrink: 0; }
+.design-search-inp {
+  flex: 1; padding: 9px 4px; border: none; outline: none;
+  font-family: 'Nunito', sans-serif; font-size: 12px; font-weight: 600;
+  color: var(--text); background: transparent; min-width: 0;
+}
+.design-clear-btn {
+  padding: 0 10px; color: var(--muted); cursor: pointer; font-size: 14px;
+  display: none; background: none; border: none; flex-shrink: 0;
+}
+.design-clear-btn.show { display: flex; align-items: center; }
+.design-dropdown {
+  display: none; position: absolute; top: calc(100% + 4px); left: 0; right: 0;
+  background: #fff; border: 1.5px solid var(--border2); border-radius: var(--r-md);
+  box-shadow: var(--shadow-md); z-index: 2000; max-height: 260px;
+  overflow-y: auto; flex-direction: column;
+}
+.design-dropdown.open { display: flex; flex-direction: column; }
+.design-dropdown::-webkit-scrollbar { width: 4px; }
+.design-dropdown::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 2px; }
+.design-opt {
+  padding: 9px 14px; font-size: 11px; font-weight: 700;
+  font-family: 'JetBrains Mono', monospace; color: var(--text);
+  cursor: pointer; border-bottom: 1px solid var(--border);
+  transition: background .1s; display: flex; align-items: center; justify-content: space-between;
+}
+.design-opt:last-child { border-bottom: none; }
+.design-opt:hover, .design-opt.active { background: var(--teal-light); color: var(--teal-dim); }
+.design-opt-sections {
+  font-size: 9px; color: var(--muted); font-weight: 400;
+  font-family: 'JetBrains Mono', monospace;
+}
+.design-no-results {
+  padding: 16px; text-align: center; color: var(--muted);
+  font-size: 11px; font-family: 'JetBrains Mono', monospace;
+}
+
+/* ── SECTION TAGS ── */
+.section-tags-wrap { display: flex; flex-wrap: wrap; gap: 6px; min-height: 36px; align-items: center; }
+.section-tag {
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 5px 12px; border-radius: 20px; font-size: 11px; font-weight: 700;
+  font-family: 'JetBrains Mono', monospace; cursor: pointer;
+  border: 1.5px solid var(--border); background: var(--surface2); color: var(--muted);
+  transition: all .15s; user-select: none;
+}
+.section-tag.selected {
+  background: var(--teal); border-color: var(--teal); color: #fff;
+}
+.section-tag:hover:not(.selected) { border-color: var(--teal); color: var(--teal); }
+.section-empty {
+  font-size: 10px; color: var(--muted2); font-family: 'JetBrains Mono', monospace;
+  font-style: italic;
+}
+.fg label {
+  font-size: 10px; font-weight: 700; color: var(--muted);
+  text-transform: uppercase; letter-spacing: .7px;
+  margin-bottom: 5px; display: block;
+  font-family: 'JetBrains Mono', monospace;
+}
+.fg input, .fg select {
+  width: 100%; padding: 9px 11px;
+  border: 1px solid var(--border); border-radius: var(--r-md);
+  font-family: 'Nunito', sans-serif; font-size: 12px; font-weight: 600;
+  color: var(--text); background: var(--surface2);
+  cursor: pointer; outline: none; transition: border-color .15s, background .15s;
+}
+.fg input:focus, .fg select:focus { border-color: var(--teal); background: #fff; }
+.find-btn {
+  padding: 9px 22px;
+  background: linear-gradient(135deg, var(--teal), var(--accent));
+  color: #fff; border: none; border-radius: var(--r-md);
+  font-family: 'Nunito', sans-serif; font-size: 12px; font-weight: 800;
+  cursor: pointer; white-space: nowrap;
+  transition: transform .15s, box-shadow .15s;
+  display: flex; align-items: center; gap: 6px;
+}
+.find-btn:hover { transform: translateY(-2px); box-shadow: 0 6px 18px rgba(224,123,42,.3); }
+.find-btn:disabled { opacity: .4; cursor: not-allowed; transform: none; box-shadow: none; }
+
+/* ── KPI ROW ── */
+.kpi-row { display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px; margin-bottom: 16px; }
+.kpi {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--r-lg); box-shadow: var(--shadow-xs);
+  display: flex; flex-direction: column; overflow: hidden; position: relative;
+  transition: transform .15s, box-shadow .15s;
+}
+.kpi:hover { transform: translateY(-2px); box-shadow: var(--shadow-md); }
+.kpi-accent { height: 3px; width: 100%; flex-shrink: 0; }
+.kpi-body { display: flex; align-items: flex-start; gap: 10px; padding: 12px 14px 8px; flex: 1; }
+.kpi-icon {
+  width: 36px; height: 36px; border-radius: var(--r-md); flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center; font-size: 16px;
+}
+.ki-teal   { background: var(--teal-light); }
+.ki-blue   { background: var(--accent-light); }
+.ki-green  { background: var(--green-light); }
+.ki-warn   { background: var(--warn-light); }
+.ki-red    { background: var(--danger-light); }
+.kpi-content { flex: 1; min-width: 0; }
+.kpi-label {
+  font-size: 9px; color: var(--muted); text-transform: uppercase;
+  letter-spacing: .8px; font-weight: 700; margin-bottom: 3px;
+  font-family: 'JetBrains Mono', monospace; white-space: nowrap;
+  overflow: hidden; text-overflow: ellipsis;
+}
+.kpi-value { font-size: 22px; font-weight: 800; line-height: 1; letter-spacing: -.8px; font-variant-numeric: tabular-nums; }
+.kpi-sub { font-size: 9px; color: var(--muted); margin-top: 3px; font-family: 'JetBrains Mono', monospace; }
+.kpi-footer {
+  padding: 5px 14px; border-top: 1px solid var(--border);
+  background: var(--surface2); display: flex; align-items: center; justify-content: space-between; gap: 6px;
+}
+.kpi-status { font-size: 9px; font-weight: 700; font-family: 'JetBrains Mono', monospace; display: flex; align-items: center; gap: 4px; }
+.kpi-status-dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
+
+/* ── RECOMMENDATION BANNER ── */
+.rec-banner {
+  background: linear-gradient(135deg, var(--teal-light), #eff6ff);
+  border: 1.5px solid var(--green-mid); border-radius: var(--r-lg);
+  padding: 16px 20px; margin-bottom: 16px;
+  display: flex; align-items: center; justify-content: space-between; gap: 16px;
+}
+.rec-banner-left { display: flex; align-items: center; gap: 12px; }
+.rec-icon { font-size: 24px; }
+.rec-main { font-size: 14px; font-weight: 800; color: var(--green); margin-bottom: 3px; }
+.rec-sub  { font-size: 10px; color: var(--muted); font-family: 'JetBrains Mono', monospace; line-height: 1.7; }
+.rec-days-badge {
+  text-align: center; flex-shrink: 0;
+  background: var(--green); color: #fff;
+  border-radius: var(--r-lg); padding: 10px 18px;
+}
+.rec-days-num { font-size: 36px; font-weight: 800; line-height: 1; letter-spacing: -2px; }
+.rec-days-lbl { font-size: 9px; opacity: .8; font-family: 'JetBrains Mono', monospace; }
+.rec-savings-pills { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 8px; }
+.rec-pill {
+  display: inline-flex; align-items: center; gap: 4px;
+  padding: 2px 9px; border-radius: 20px; font-size: 10px; font-weight: 700;
+  font-family: 'JetBrains Mono', monospace;
+}
+.rp-green { background: var(--green-light); border: 1px solid var(--green-mid); color: var(--green); }
+.rp-teal  { background: var(--teal-light); border: 1px solid var(--teal-mid); color: var(--teal); }
+.rp-blue  { background: var(--accent-light); border: 1px solid var(--accent-mid); color: var(--accent); }
+
+/* ── SPLIT PANEL ── */
+.split-panel { border: 1.5px solid var(--teal-mid); border-radius: var(--r-lg); overflow: hidden; box-shadow: 0 4px 20px rgba(224,123,42,.1); margin-bottom: 16px; }
+.split-hdr {
+  background: linear-gradient(135deg, #2a1f14 0%, var(--teal) 100%);
+  padding: 14px 20px; display: flex; align-items: center; justify-content: space-between; gap: 12px;
+}
+.split-hdr-left h4 { font-size: 13px; font-weight: 800; color: #fff; margin-bottom: 3px; letter-spacing: -.2px; }
+.split-hdr-left p  { font-size: 10px; color: rgba(255,255,255,.65); font-family: 'JetBrains Mono', monospace; }
+.split-hdr-right { text-align: right; flex-shrink: 0; }
+.split-days { font-size: 36px; font-weight: 800; color: #fff; line-height: 1; letter-spacing: -2px; }
+.split-days-lbl { font-size: 9px; color: rgba(255,255,255,.65); font-family: 'JetBrains Mono', monospace; margin-top: 1px; }
+
+.split-summary {
+  display: grid; grid-template-columns: repeat(4, 1fr);
+  border-bottom: 1px solid var(--border); background: var(--surface);
+}
+.split-stat { padding: 12px 16px; border-right: 1px solid var(--border); }
+.split-stat:last-child { border-right: none; }
+.split-stat-val { font-size: 22px; font-weight: 800; line-height: 1; letter-spacing: -1px; }
+.split-stat-lbl { font-size: 9px; color: var(--muted); font-family: 'JetBrains Mono', monospace; text-transform: uppercase; letter-spacing: .6px; margin-top: 3px; }
+
+.split-vendor-grid {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 12px; padding: 16px 18px; border-bottom: 1px solid var(--border);
+  background: var(--surface);
+}
+.split-vc {
+  border-radius: 10px; padding: 14px 15px; position: relative;
+  border: 1.5px solid var(--border); background: var(--surface2);
+  transition: box-shadow .12s, transform .12s;
+}
+.split-vc:hover { box-shadow: 0 4px 14px rgba(0,0,0,.09); transform: translateY(-1px); }
+.split-vc.vc-primary   { border-color: var(--teal); background: var(--teal-light); }
+.split-vc.vc-secondary { border-color: var(--accent); background: var(--accent-light); }
+.split-vc.vc-support   { border-color: var(--green); background: var(--green-light); }
+.split-vc-role {
+  position: absolute; top: 10px; right: 10px;
+  padding: 2px 8px; border-radius: 20px; font-size: 8px; font-weight: 800;
+  text-transform: uppercase; letter-spacing: .5px;
+}
+.svcr-primary   { background: var(--teal); color: #fff; }
+.svcr-secondary { background: var(--accent); color: #fff; }
+.svcr-support   { background: var(--green); color: #fff; }
+
+.split-vc-name { font-size: 12px; font-weight: 800; color: var(--text); padding-right: 60px; margin-bottom: 8px; }
+.split-vc-qty  { font-size: 24px; font-weight: 800; line-height: 1; }
+.split-vc-qlbl { font-size: 9px; color: var(--muted); font-family: 'JetBrains Mono', monospace; margin-bottom: 8px; }
+.split-vc-bar  { height: 3px; background: rgba(0,0,0,.08); border-radius: 2px; overflow: hidden; margin: 6px 0 8px; }
+.split-vc-bar-fill { height: 100%; border-radius: 2px; transition: width .6s ease; }
+.split-vc-days { display: flex; align-items: baseline; gap: 5px; margin-bottom: 5px; }
+.split-vc-d    { font-size: 16px; font-weight: 800; }
+.split-vc-dlbl { font-size: 9px; font-family: 'JetBrains Mono', monospace; color: var(--muted); }
+.split-vc-stats { font-size: 9px; color: var(--muted); font-family: 'JetBrains Mono', monospace; line-height: 1.8; }
+
+/* Timeline */
+.split-timeline { padding: 14px 18px; border-bottom: 1px solid var(--border); background: var(--surface); }
+.split-tl-hdr {
+  font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: .8px;
+  color: var(--muted); font-family: 'JetBrains Mono', monospace; margin-bottom: 10px;
+}
+.split-tl-row { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+.split-tl-row:last-child { margin-bottom: 0; }
+.split-tl-name { font-size: 10px; font-weight: 700; color: var(--text2); width: 130px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex-shrink: 0; }
+.split-tl-track { flex: 1; height: 20px; background: var(--surface2); border-radius: 5px; overflow: hidden; border: 1px solid var(--border); }
+.split-tl-fill { height: 100%; border-radius: 4px; display: flex; align-items: center; padding: 0 8px; min-width: 36px; }
+.split-tl-fill-lbl { font-size: 9px; font-weight: 700; color: #fff; white-space: nowrap; }
+.split-tl-days { font-size: 11px; font-family: 'JetBrains Mono', monospace; font-weight: 800; width: 34px; text-align: right; flex-shrink: 0; }
+
+/* ── VENDOR TABLE CARD ── */
+.card {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--r-lg); box-shadow: var(--shadow-xs);
+  margin-bottom: 16px;
+}
+.card-hdr {
+  padding: 12px 16px; border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; justify-content: space-between;
+  background: var(--surface2); border-radius: var(--r-lg) var(--r-lg) 0 0;
+}
+.card-title { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .8px; color: var(--text2); }
+.card-tag {
+  font-size: 10px; font-family: 'JetBrains Mono', monospace;
+  color: var(--teal); background: var(--teal-light);
+  border: 1px solid var(--teal-mid);
+  padding: 2px 8px; border-radius: 20px;
+}
+table { width: 100%; border-collapse: collapse; }
+thead th {
+  font-size: 10px; font-family: 'JetBrains Mono', monospace; color: var(--muted);
+  text-transform: uppercase; letter-spacing: .6px;
+  padding: 8px 12px; text-align: left;
+  border-bottom: 1px solid var(--border);
+  background: var(--surface2); white-space: nowrap; font-weight: 600;
+}
+tbody tr { border-bottom: 1px solid var(--border); transition: background .12s; }
+tbody tr:last-child { border-bottom: none; }
+tbody tr:hover { background: var(--surface2) !important; }
+tbody tr.row-best   { background: #f0fdf4; }
+tbody tr.row-warn   { background: #fffbeb; }
+tbody tr.row-danger { background: #fef2f2; }
+tbody tr.row-hl     { background: var(--teal-light) !important; outline: 2px solid var(--teal); outline-offset: -1px; }
+td { padding: 10px 12px; font-size: 11px; font-family: 'JetBrains Mono', monospace; white-space: nowrap; color: var(--text2); }
+
+.rnk { display: inline-flex; align-items: center; justify-content: center; width: 22px; height: 22px; border-radius: var(--r-sm); font-size: 10px; font-weight: 700; }
+.r1 { background: var(--teal-mid); color: var(--teal-dim); }
+.r2 { background: var(--accent-mid); color: var(--accent); }
+.r3 { background: var(--green-mid); color: var(--green); }
+.rx { background: var(--surface3); color: var(--muted); border: 1px solid var(--border); }
+
+.vname { font-family: 'Nunito', sans-serif; font-weight: 700; font-size: 12px; color: var(--text); }
+.vsub  { font-size: 9px; color: var(--muted); margin-top: 1px; font-family: 'JetBrains Mono', monospace; }
+
+.opill { display: inline-block; padding: 2px 7px; border-radius: 20px; font-size: 10px; font-weight: 600; font-family: 'JetBrains Mono', monospace; }
+.p-ok     { background: var(--green-light); color: var(--green); }
+.p-warn   { background: var(--warn-light);  color: var(--warn); }
+.p-danger { background: var(--danger-light); color: var(--danger); }
+.p-blue   { background: var(--accent-light); color: var(--accent); }
+.p-teal   { background: var(--teal-light); color: var(--teal-dim); }
+
+.trend-pill { display: inline-flex; align-items: center; gap: 2px; padding: 2px 7px; border-radius: 20px; font-size: 10px; font-weight: 600; font-family: 'JetBrains Mono', monospace; }
+.tp-fast  { background: var(--green-light); color: var(--green); }
+.tp-slow  { background: var(--danger-light); color: var(--danger); }
+.tp-stbl  { background: var(--surface3); color: var(--muted); border: 1px solid var(--border); }
+
+.bar-row { display: flex; align-items: center; gap: 6px; }
+.bar-track { flex: 1; height: 4px; background: var(--border); border-radius: 3px; overflow: hidden; }
+.bar-fill  { height: 100%; border-radius: 3px; }
+
+.assigned-badge {
+  display: inline-flex; align-items: center; gap: 3px; padding: 3px 9px; border-radius: 20px;
+  font-size: 10px; font-weight: 700; font-family: 'JetBrains Mono', monospace;
+  background: var(--teal); color: #fff;
+}
+.standby-badge {
+  display: inline-flex; align-items: center; gap: 3px; padding: 3px 9px; border-radius: 20px;
+  font-size: 10px; font-weight: 600; font-family: 'JetBrains Mono', monospace;
+  background: var(--surface3); color: var(--muted); border: 1px solid var(--border);
+}
+
+/* ── CLICKABLE CELL STYLES ── */
+.click-cell {
+  cursor: pointer; color: var(--teal); font-weight: 700;
+  text-decoration: underline dotted; text-underline-offset: 3px;
+  transition: color .12s;
+}
+.click-cell:hover { color: var(--teal-dim); }
+
+/* ── BATCH MODAL ── */
+#batch-overlay, #cap-overlay {
+  position: fixed; inset: 0; background: rgba(15,23,42,.55);
+  z-index: 10000; display: none; align-items: center; justify-content: center;
+  backdrop-filter: blur(3px);
+}
+#batch-overlay.open, #cap-overlay.open { display: flex; }
+#batch-modal {
+  background: var(--surface); border-radius: var(--r-lg);
+  box-shadow: 0 20px 60px rgba(15,23,42,.25);
+  width: 760px; max-width: 96vw; max-height: 85vh;
+  display: flex; flex-direction: column; overflow: hidden;
+}
+.jw-modal-hdr {
+  padding: 16px 20px; display: flex; align-items: flex-start; justify-content: space-between;
+  background: linear-gradient(135deg, #5a4030, var(--accent));
+  color: #fff; flex-shrink: 0;
+}
+.jw-modal-title { font-size: 16px; font-weight: 800; letter-spacing: -.3px; }
+.jw-modal-sub   { font-size: 10px; opacity: .75; font-family: 'JetBrains Mono', monospace; margin-top: 3px; }
+.jw-modal-close {
+  background: rgba(255,255,255,.2); border: none; color: #fff;
+  width: 28px; height: 28px; border-radius: 50%; font-size: 14px;
+  cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+}
+.jw-modal-close:hover { background: rgba(255,255,255,.35); }
+.jw-modal-body { overflow-y: auto; flex: 1; padding: 0; }
+.jw-modal-footer {
+  padding: 10px 16px; border-top: 1px solid var(--border);
+  background: var(--surface2); font-size: 10px; color: var(--muted);
+  font-family: 'JetBrains Mono', monospace; flex-shrink: 0;
+}
+.jw-table { width: 100%; border-collapse: collapse; }
+.jw-table thead th {
+  font-size: 9.5px; font-family: 'JetBrains Mono', monospace; color: var(--muted);
+  text-transform: uppercase; letter-spacing: .6px; font-weight: 600;
+  padding: 10px 16px; text-align: left; border-bottom: 1px solid var(--border);
+  background: var(--surface2); position: sticky; top: 0;
+}
+.jw-table tbody tr { border-bottom: 1px solid var(--border); transition: background .1s; }
+.jw-table tbody tr:last-child { border-bottom: none; }
+.jw-table tbody tr:hover { background: var(--teal-light); }
+.jw-table td { padding: 11px 16px; font-size: 11px; font-family: 'JetBrains Mono', monospace; color: var(--text2); }
+.lot-overdue { color: var(--danger); font-weight: 700; }
+.lot-warn    { color: var(--warn);   font-weight: 700; }
+.lot-ok      { color: var(--teal);   font-weight: 600; }
+
+/* ── CAPACITY MODAL (rich) ── */
+#cap-modal {
+  background: var(--surface); border-radius: var(--r-lg);
+  box-shadow: 0 20px 60px rgba(15,23,42,.25);
+  width: 680px; max-width: 96vw; max-height: 88vh;
+  display: flex; flex-direction: column; overflow: hidden;
+}
+.cap-hdr {
+  padding: 18px 22px; display: flex; align-items: flex-start; justify-content: space-between;
+  background: linear-gradient(135deg, #5a4030, var(--teal));
+  color: #fff; flex-shrink: 0;
+}
+.cap-hdr-left { flex: 1; }
+.cap-hdr-title { font-size: 18px; font-weight: 800; letter-spacing: -.3px; font-family: 'Cormorant Garamond', serif; }
+.cap-hdr-sub   { font-size: 10px; opacity: .75; font-family: 'JetBrains Mono', monospace; margin-top: 3px; }
+.cap-hdr-right { display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
+.cap-rank-badge {
+  background: rgba(255,255,255,.15); border: 1.5px solid rgba(255,255,255,.3);
+  border-radius: var(--r-md); padding: 6px 14px; text-align: center;
+}
+.cap-rank-num { font-size: 22px; font-weight: 800; line-height: 1; }
+.cap-rank-lbl { font-size: 9px; opacity: .7; font-family: 'JetBrains Mono', monospace; }
+.cap-close {
+  background: rgba(255,255,255,.2); border: none; color: #fff;
+  width: 28px; height: 28px; border-radius: 50%; font-size: 14px;
+  cursor: pointer; display: flex; align-items: center; justify-content: center;
+}
+.cap-close:hover { background: rgba(255,255,255,.35); }
+
+/* Tabs */
+.cap-tabs {
+  display: flex; gap: 0; border-bottom: 2px solid var(--border);
+  padding: 0 22px; background: var(--surface); flex-shrink: 0;
+}
+.cap-tab {
+  padding: 10px 16px; font-size: 12px; font-weight: 700;
+  font-family: 'JetBrains Mono', monospace; cursor: pointer;
+  border-bottom: 2px solid transparent; margin-bottom: -2px;
+  color: var(--muted); transition: all .15s; display: flex; align-items: center; gap: 6px;
+  user-select: none; white-space: nowrap;
+}
+.cap-tab:hover { color: var(--text); }
+.cap-tab.active { color: var(--teal); border-bottom-color: var(--teal); }
+.cap-tab-count {
+  background: var(--teal); color: #fff;
+  padding: 1px 7px; border-radius: 20px; font-size: 9px; font-weight: 800;
+}
+.cap-tab:not(.active) .cap-tab-count { background: var(--surface3); color: var(--muted); }
+
+/* Search */
+.cap-search-wrap {
+  padding: 14px 22px 10px; background: var(--surface); flex-shrink: 0;
+}
+.cap-search {
+  width: 100%; padding: 9px 14px 9px 34px;
+  border: 1.5px solid var(--border); border-radius: 30px;
+  font-family: 'JetBrains Mono', monospace; font-size: 11px;
+  color: var(--text); background: var(--surface2); outline: none;
+  transition: border-color .15s;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%23a08c78' stroke-width='2'%3E%3Ccircle cx='11' cy='11' r='8'/%3E%3Cpath d='m21 21-4.35-4.35'/%3E%3C/svg%3E");
+  background-repeat: no-repeat; background-position: 12px center;
+}
+.cap-search:focus { border-color: var(--teal); background-color: #fff; }
+
+/* Stats bar */
+.cap-stats-bar {
+  padding: 4px 22px 10px; font-size: 10px; color: var(--muted);
+  font-family: 'JetBrains Mono', monospace; flex-shrink: 0;
+  display: flex; gap: 6px; align-items: center; flex-wrap: wrap;
+}
+.cap-stats-bar span { color: var(--text2); font-weight: 700; }
+
+/* Design chips grid */
+.cap-chips-wrap {
+  flex: 1; overflow-y: auto; padding: 4px 22px 18px;
+}
+.cap-chips-wrap::-webkit-scrollbar { width: 4px; }
+.cap-chips-wrap::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 2px; }
+.cap-chips {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 8px;
+}
+.cap-chip {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 6px 12px; border-radius: 30px;
+  border: 1.5px solid var(--border); background: var(--surface2);
+  font-size: 11px; font-weight: 700; font-family: 'JetBrains Mono', monospace;
+  color: var(--text); cursor: default; transition: box-shadow .12s;
+}
+.cap-chip:hover { box-shadow: 0 2px 8px rgba(0,0,0,.1); }
+.cap-chip-badge {
+  display: inline-flex; align-items: center; gap: 3px;
+  padding: 2px 8px; border-radius: 20px;
+  font-size: 9px; font-weight: 700; font-family: 'JetBrains Mono', monospace;
+  white-space: nowrap;
+}
+.cb-active   { background: var(--teal); color: #fff; }
+.cb-reg      { background: var(--accent); color: #fff; }
+.cb-history  { background: var(--green-light); color: var(--green); border: 1px solid var(--green-mid); }
+.cap-empty {
+  padding: 32px; text-align: center; color: var(--muted);
+  font-family: 'JetBrains Mono', monospace; font-size: 11px; width: 100%;
+}
+
+.hidden { display: none !important; }
+
+/* ── ALL-VENDORS PANEL ── */
+.av-panel {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--r-lg); box-shadow: var(--shadow-sm);
+  margin-bottom: 16px; overflow: hidden;
+}
+.av-hdr {
+  background: linear-gradient(135deg, #1e2e48, var(--accent));
+  padding: 14px 20px; display: flex; align-items: center; justify-content: space-between; gap: 12px;
+}
+.av-hdr-left { display: flex; align-items: center; gap: 12px; }
+.av-hdr-icon {
+  width: 36px; height: 36px; border-radius: var(--r-md);
+  background: rgba(255,255,255,.18); display: flex; align-items: center; justify-content: center;
+  font-size: 18px; flex-shrink: 0;
+}
+.av-hdr h2 { font-size: 13px; font-weight: 800; color: #fff; letter-spacing: -.1px; }
+.av-hdr p  { font-size: 10px; color: rgba(255,255,255,.65); margin-top: 1px; font-family: 'JetBrains Mono', monospace; }
+.av-hdr-right { display: flex; align-items: center; gap: 8px; }
+.av-total-badge {
+  padding: 4px 12px; border-radius: 20px;
+  font-size: 11px; font-weight: 700; font-family: 'JetBrains Mono', monospace;
+  background: rgba(255,255,255,.18); color: #fff; border: 1px solid rgba(255,255,255,.25);
+}
+
+/* ── DATE RANGE FILTER ── */
+.av-date-row {
+  padding: 8px 18px 10px;
+  background: var(--surface2); border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+}
+.av-date-lbl {
+  font-size: 10px; font-weight: 700; color: var(--muted);
+  font-family: 'JetBrains Mono', monospace; text-transform: uppercase;
+  letter-spacing: .6px; white-space: nowrap; margin-right: 2px;
+}
+.av-range-btn {
+  padding: 4px 12px; border-radius: 20px;
+  font-size: 11px; font-weight: 700; font-family: 'JetBrains Mono', monospace;
+  cursor: pointer; border: 1.5px solid var(--border);
+  background: var(--surface); color: var(--muted);
+  transition: all .15s; user-select: none; white-space: nowrap;
+}
+.av-range-btn:hover:not(.av-range-active) { border-color: var(--teal); color: var(--teal); }
+.av-range-btn.av-range-active { background: var(--teal); border-color: var(--teal); color: #fff; }
+.av-custom-dates {
+  display: none; align-items: center; gap: 6px; flex-wrap: wrap;
+}
+.av-custom-dates.show { display: flex; }
+.av-custom-dates span {
+  font-size: 10px; color: var(--muted); font-family: 'JetBrains Mono', monospace;
+}
+.av-date-inp {
+  padding: 4px 8px; border: 1.5px solid var(--border); border-radius: var(--r-sm);
+  font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--text);
+  background: var(--surface); outline: none; transition: border-color .15s;
+}
+.av-date-inp:focus { border-color: var(--teal); }
+.av-date-apply {
+  padding: 4px 12px; border-radius: 20px;
+  font-size: 11px; font-weight: 700; font-family: 'JetBrains Mono', monospace;
+  cursor: pointer; border: none;
+  background: var(--teal); color: #fff; transition: opacity .15s;
+}
+.av-date-apply:hover { opacity: .85; }
+.av-range-badge {
+  margin-left: auto; font-size: 10px; color: var(--teal);
+  font-family: 'JetBrains Mono', monospace; font-weight: 700;
+  background: var(--teal-light); border: 1px solid var(--teal-mid);
+  padding: 3px 10px; border-radius: 20px; white-space: nowrap;
+}
+
+.av-controls {
+  padding: 12px 18px; background: var(--surface2);
+  border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+}
+.av-filter-tabs { display: flex; gap: 4px; }
+.av-tab {
+  padding: 5px 14px; border-radius: 20px;
+  font-size: 11px; font-weight: 700; font-family: 'JetBrains Mono', monospace;
+  cursor: pointer; border: 1.5px solid var(--border);
+  background: var(--surface); color: var(--muted);
+  transition: all .15s; user-select: none; white-space: nowrap;
+  display: flex; align-items: center; gap: 5px;
+}
+.av-tab:hover:not(.av-tab-active) { border-color: var(--accent); color: var(--accent); }
+.av-tab.av-tab-active {
+  background: var(--accent); border-color: var(--accent); color: #fff;
+}
+.av-tab-ct {
+  font-size: 9px; font-weight: 800;
+  background: rgba(255,255,255,.25); border-radius: 10px;
+  padding: 1px 5px; min-width: 16px; text-align: center;
+}
+.av-tab:not(.av-tab-active) .av-tab-ct { background: var(--surface3); color: var(--muted); }
+
+.av-search {
+  flex: 1; min-width: 180px; max-width: 280px;
+  padding: 7px 12px 7px 30px;
+  border: 1.5px solid var(--border); border-radius: 20px;
+  font-family: 'JetBrains Mono', monospace; font-size: 11px;
+  color: var(--text); background: var(--surface);
+  outline: none; transition: border-color .15s;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23a08c78' stroke-width='2'%3E%3Ccircle cx='11' cy='11' r='8'/%3E%3Cpath d='m21 21-4.35-4.35'/%3E%3C/svg%3E");
+  background-repeat: no-repeat; background-position: 10px center;
+}
+.av-search:focus { border-color: var(--accent); }
+
+.av-sort-info {
+  font-size: 10px; color: var(--muted); font-family: 'JetBrains Mono', monospace;
+  margin-left: auto; white-space: nowrap;
+}
+
+.av-summary-strip {
+  display: grid; grid-template-columns: repeat(4, 1fr);
+  border-bottom: 1px solid var(--border);
+}
+.av-ss { padding: 10px 18px; border-right: 1px solid var(--border); }
+.av-ss:last-child { border-right: none; }
+.av-ss-val { font-size: 20px; font-weight: 800; line-height: 1; letter-spacing: -1px; }
+.av-ss-lbl { font-size: 9px; color: var(--muted); font-family: 'JetBrains Mono', monospace; text-transform: uppercase; letter-spacing: .6px; margin-top: 2px; }
+
+/* Job type badge colours */
+.jt-stitch    { background: rgba(224,123,42,.12); color: var(--teal); border-color: rgba(224,123,42,.3); }
+.jt-cut_stitch{ background: rgba(61,90,138,.1);   color: var(--accent); border-color: rgba(61,90,138,.25); }
+.jt-cut_pack  { background: rgba(46,139,110,.1);   color: var(--green); border-color: rgba(46,139,110,.25); }
+.jt-fob       { background: rgba(212,134,11,.1);  color: var(--warn); border-color: rgba(212,134,11,.25); }
+
+.av-empty {
+  padding: 36px; text-align: center; color: var(--muted);
+  font-family: 'JetBrains Mono', monospace; font-size: 12px;
+}
+
+/* sortable th */
+th.sortable { cursor: pointer; user-select: none; white-space: nowrap; }
+th.sortable:hover { color: var(--accent); }
+th.sortable .sort-arrow { opacity: .35; margin-left: 3px; font-size: 9px; }
+th.sortable.sort-asc  .sort-arrow::after { content: '▲'; opacity: 1; }
+th.sortable.sort-desc .sort-arrow::after { content: '▼'; opacity: 1; }
+th.sortable:not(.sort-asc):not(.sort-desc) .sort-arrow::after { content: '⇅'; }
+
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(12px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.animate-in { animation: fadeInUp .3s ease forwards; }
+</style>
+</head>
+<body>
+
+<!-- ── HEADER ── -->
+<div class="header">
+  <div class="header-left">
+    <div class="hicon">🧵</div>
+    <div>
+      <h1>Production Planning & Control (PPC)</h1>
+      <p>THIRD-PARTY VENDOR MANAGEMENT · LOAD SPLIT · DELIVERY OPTIMISATION</p>
+    </div>
+  </div>
+  <div class="header-right">
+    <div class="live-badge"><div class="live-dot"></div> LIVE</div>
+    <div class="date-badge" id="date-badge">—</div>
+  </div>
+</div>
+
+<!-- ── STEP 1: JOB TYPE ── -->
+<div class="step-panel">
+  <div class="step-hdr">
+    <div class="step-hdr-num">1</div>
+    <div>
+      <h2>Select Job Work Type</h2>
+      <p>Choose the category of third-party job work to route to vendors</p>
+    </div>
+  </div>
+  <div class="step-body">
+    <div class="job-grid">
+      <div class="job-card" id="jc-stitch" onclick="selectJobType('stitch')">
+        <div class="jc-check">✓</div>
+        <span class="jc-icon">🧵</span>
+        <div class="jc-name">Only Stitch</div>
+        <div class="jc-tag">Fabric-in, Stitch-out</div>
+      </div>
+      <div class="job-card" id="jc-cut_stitch" onclick="selectJobType('cut_stitch')">
+        <div class="jc-check">✓</div>
+        <span class="jc-icon">✂️</span>
+        <div class="jc-name">Cut to Stitch</div>
+        <div class="jc-tag">Cut + Assemble</div>
+      </div>
+      <div class="job-card" id="jc-cut_pack" onclick="selectJobType('cut_pack')">
+        <div class="jc-check">✓</div>
+        <span class="jc-icon">📦</span>
+        <div class="jc-name">Cut to Pack</div>
+        <div class="jc-tag">End-to-End Process</div>
+      </div>
+      <div class="job-card" id="jc-fob" onclick="selectJobType('fob')">
+        <div class="jc-check">✓</div>
+        <span class="jc-icon">🚢</span>
+        <div class="jc-name">FoB</div>
+        <div class="jc-tag">Free on Board Export</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── STEP 2: ORDER CONFIG ── -->
+<div class="step-panel hidden" id="config-panel">
+  <div class="step-hdr">
+    <div class="step-hdr-num">2</div>
+    <div>
+      <h2>Order Configuration</h2>
+      <p>Specify design, section, quantity and delivery target</p>
+    </div>
+  </div>
+  <div class="step-body">
+    <div class="config-grid">
+      <div class="fg">
+        <label>Design Number</label>
+        <div class="design-wrap" id="design-wrap">
+          <div class="design-input-row">
+            <span class="design-search-icon">🔍</span>
+            <input class="design-search-inp" id="design-search-inp" type="text"
+              placeholder="Search e.g. 417-03"
+              oninput="designSearch(this.value)"
+              onfocus="designDropdownOpen()"
+              autocomplete="off">
+            <button class="design-clear-btn" id="design-clear-btn" onclick="designClear()">✕</button>
+          </div>
+          <div class="design-dropdown" id="design-dropdown"></div>
+        </div>
+      </div>
+      <div class="fg">
+        <label>Section</label>
+        <div class="section-tags-wrap" id="section-tags">
+          <span class="section-empty">Select a design first</span>
+        </div>
+      </div>
+      <div class="fg">
+        <label>Quantity (Pieces)</label>
+        <input type="number" id="inp-qty" placeholder="e.g. 500" min="50" max="20000">
+      </div>
+      <div class="fg">
+        <label>Expected Delivery (Days)</label>
+        <input type="number" id="inp-days" placeholder="e.g. 21" min="5" max="90">
+      </div>
+      <button class="find-btn" id="find-btn" onclick="runAnalysis()">
+        🔍 Find &amp; Split
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ── RESULTS ── -->
+<div id="results-wrap" class="hidden">
+  <!-- KPI Row -->
+  <div class="kpi-row animate-in" id="kpi-row"></div>
+  <!-- Split Panel -->
+  <div class="split-panel animate-in" id="split-panel-wrap"></div>
+</div>
+
+<!-- ── FULL VENDOR COMPARISON (always visible) ── -->
+<div class="av-panel" id="av-panel">
+  <div class="av-hdr">
+    <div class="av-hdr-left">
+      <div class="av-hdr-icon">📊</div>
+      <div>
+        <h2>Full Vendor Comparison</h2>
+        <p>ALL ACTIVE VENDORS · ACROSS ALL JOB WORK TYPES · RANKED BY PERFORMANCE SCORE</p>
+      </div>
+    </div>
+    <div class="av-hdr-right">
+      <span class="av-total-badge" id="av-total-badge">— vendors</span>
+    </div>
+  </div>
+
+  <div class="av-summary-strip" id="av-summary-strip" style="display:none">
+    <div class="av-ss"><div class="av-ss-val" id="avs-stitch">—</div><div class="av-ss-lbl">🧵 Only Stitch</div></div>
+    <div class="av-ss"><div class="av-ss-val" id="avs-cut_stitch">—</div><div class="av-ss-lbl">✂️ Cut to Stitch</div></div>
+    <div class="av-ss"><div class="av-ss-val" id="avs-cut_pack">—</div><div class="av-ss-lbl">📦 Cut to Pack</div></div>
+    <div class="av-ss"><div class="av-ss-val" id="avs-cap">—</div><div class="av-ss-lbl">🎯 Total Capacity / mo</div></div>
+  </div>
+
+  <div class="av-date-row" id="av-date-row">
+    <span class="av-date-lbl">📅 Period</span>
+    <div class="av-range-btn av-range-active" data-days="30"  onclick="avSetRange(30)">Last 30d</div>
+    <div class="av-range-btn" data-days="60"  onclick="avSetRange(60)">Last 60d</div>
+    <div class="av-range-btn" data-days="90"  onclick="avSetRange(90)">Last 90d</div>
+    <div class="av-range-btn" data-days="365" onclick="avSetRange(365)">1 Year</div>
+    <div class="av-range-btn" data-days="0"   onclick="avSetRange(0)">All Time</div>
+    <div class="av-range-btn" data-days="custom" onclick="avSetRange('custom')">Custom ✏️</div>
+    <div class="av-custom-dates" id="av-custom-dates">
+      <span>From</span>
+      <input class="av-date-inp" type="date" id="av-date-from">
+      <span>To</span>
+      <input class="av-date-inp" type="date" id="av-date-to">
+      <button class="av-date-apply" onclick="avApplyCustom()">Apply</button>
+    </div>
+    <span class="av-range-badge" id="av-range-badge">Last 30 days</span>
+  </div>
+
+  <div class="av-controls">
+    <div class="av-filter-tabs" id="av-filter-tabs">
+      <div class="av-tab av-tab-active" data-job="all" onclick="avFilter('all')">All Types <span class="av-tab-ct" id="av-ct-all">0</span></div>
+      <div class="av-tab" data-job="stitch" onclick="avFilter('stitch')">🧵 Stitch <span class="av-tab-ct" id="av-ct-stitch">0</span></div>
+      <div class="av-tab" data-job="cut_stitch" onclick="avFilter('cut_stitch')">✂️ Cut+Stitch <span class="av-tab-ct" id="av-ct-cut_stitch">0</span></div>
+      <div class="av-tab" data-job="cut_pack" onclick="avFilter('cut_pack')">📦 Cut+Pack <span class="av-tab-ct" id="av-ct-cut_pack">0</span></div>
+    </div>
+    <input class="av-search" id="av-search" type="text" placeholder="Search vendor name…" oninput="avRender()">
+    <div class="av-sort-info" id="av-sort-info">Sorted by Score ↓</div>
+  </div>
+
+  <div style="overflow-x:auto">
+    <table>
+      <thead>
+        <tr>
+          <th style="width:44px">Rank</th>
+          <th style="width:160px" class="sortable" data-col="name" onclick="avSort('name')">Vendor Name<span class="sort-arrow"></span></th>
+          <th style="width:120px">Job Work Type</th>
+          <th style="width:110px" class="sortable" data-col="batches" onclick="avSort('batches')">Active Batches<span class="sort-arrow"></span></th>
+          <th style="width:110px" class="sortable" data-col="avgDays" onclick="avSort('avgDays')">Avg Delivery<span class="sort-arrow"></span></th>
+          <th style="width:130px" class="sortable" data-col="debit" onclick="avSort('debit')">Debit %<span class="sort-arrow"></span></th>
+          <th style="width:75px" class="sortable" data-col="alter" onclick="avSort('alter')">Alter %<span class="sort-arrow"></span></th>
+          <th style="width:200px" class="sortable" data-col="cap" onclick="avSort('cap')">Can Make<span class="sort-arrow"></span></th>
+        </tr>
+      </thead>
+      <tbody id="av-tbody"></tbody>
+    </table>
+  </div>
+</div>
+
+<script>
+// ── DATA ──
+const VENDOR_DB = {
+  stitch: [
+    {name:"VERMA ASHISH VEDLAL",batches:104,avgDays:14,invoice:"\u20b921",debit:0.9,alter:1.0,cap:3100,city:"Surat",issue_qty:37413,pending_qty:2988,received_qty:34425,designs:["005-01", "005-02", "417-03", "417-04", "417-05", "417-06", "417-07"],lots:[{"lot_no": "LT-06810", "design": "417-06", "issue_qty": 460, "pending_qty": 460, "received_qty": 0, "date": "2026-04-02"}, {"lot_no": "LT-06684", "design": "417-04", "issue_qty": 274, "pending_qty": 274, "received_qty": 0, "date": "2026-04-02"}, {"lot_no": "LT-06690", "design": "417-03", "issue_qty": 548, "pending_qty": 268, "received_qty": 280, "date": "2026-04-02"}, {"lot_no": "LT-06593", "design": "417-03", "issue_qty": 590, "pending_qty": 350, "received_qty": 240, "date": "2026-03-25"}, {"lot_no": "LT-07029", "design": "417-03", "issue_qty": 294, "pending_qty": 114, "received_qty": 180, "date": "2026-03-25"}, {"lot_no": "LT-06808", "design": "417-06", "issue_qty": 340, "pending_qty": 340, "received_qty": 0, "date": "2026-03-25"}, {"lot_no": "LT-07031", "design": "417-04", "issue_qty": 784, "pending_qty": 424, "received_qty": 360, "date": "2026-03-25"}, {"lot_no": "LT-06952", "design": "005-02", "issue_qty": 355, "pending_qty": 115, "received_qty": 240, "date": "2026-03-21"}, {"lot_no": "LT-06926", "design": "005-01", "issue_qty": 510, "pending_qty": 270, "received_qty": 240, "date": "2026-03-21"}, {"lot_no": "LT-06956", "design": "005-02", "issue_qty": 373, "pending_qty": 373, "received_qty": 0, "date": "2026-03-21"}, {"lot_no": "LT-06597", "design": "417-04", "issue_qty": 310, "pending_qty": 0, "received_qty": 310, "date": "2026-03-14"}, {"lot_no": "LT-06689", "design": "417-03", "issue_qty": 440, "pending_qty": 0, "received_qty": 440, "date": "2026-03-14"}, {"lot_no": "LT-06600", "design": "417-04", "issue_qty": 353, "pending_qty": 0, "received_qty": 353, "date": "2026-03-14"}, {"lot_no": "LT-06560", "design": "417-06", "issue_qty": 444, "pending_qty": 0, "received_qty": 444, "date": "2026-03-02"}, {"lot_no": "LT-06502", "design": "005-01", "issue_qty": 366, "pending_qty": 0, "received_qty": 366, "date": "2026-03-02"}, {"lot_no": "LT-05698", "design": "417-07", "issue_qty": 552, "pending_qty": 0, "received_qty": 552, "date": "2026-01-28"}, {"lot_no": "LT-05633", "design": "417-04", "issue_qty": 250, "pending_qty": 0, "received_qty": 250, "date": "2026-01-25"}, {"lot_no": "LT-05699", "design": "417-07", "issue_qty": 467, "pending_qty": 0, "received_qty": 467, "date": "2026-01-25"}, {"lot_no": "LT-05660", "design": "417-04", "issue_qty": 480, "pending_qty": 0, "received_qty": 480, "date": "2026-01-25"}, {"lot_no": "LT-05690", "design": "417-03", "issue_qty": 882, "pending_qty": 0, "received_qty": 882, "date": "2025-12-23"}]},
+    {name:"GORAPATI FASHION",batches:53,avgDays:12,invoice:"\u20b989",debit:0.6,alter:0.8,cap:4200,city:"Surat",issue_qty:50239,pending_qty:1206,received_qty:49033,designs:["417-03", "417-04", "417-06", "444-03", "444-04", "K-5801", "K-5802", "K-5803", "K-5804", "K-5805"],lots:[{"lot_no": "LT-06095", "design": "417-03", "issue_qty": 1224, "pending_qty": -1, "received_qty": 1225, "date": "2025-12-27"}, {"lot_no": "LT-05590", "design": "417-03", "issue_qty": 1812, "pending_qty": 0, "received_qty": 1812, "date": "2025-12-22"}, {"lot_no": "LT-05662", "design": "417-04", "issue_qty": 1305, "pending_qty": 0, "received_qty": 1305, "date": "2025-12-18"}, {"lot_no": "LT-05610", "design": "417-04", "issue_qty": 1275, "pending_qty": 0, "received_qty": 1275, "date": "2025-11-25"}, {"lot_no": "LT-05605", "design": "417-04", "issue_qty": 1365, "pending_qty": 0, "received_qty": 1365, "date": "2025-11-21"}, {"lot_no": "LT-05598", "design": "417-04", "issue_qty": 1215, "pending_qty": 0, "received_qty": 1215, "date": "2025-11-15"}, {"lot_no": "LT-05637", "design": "417-06", "issue_qty": 2655, "pending_qty": 0, "received_qty": 2655, "date": "2025-11-07"}, {"lot_no": "LT-05571", "design": "417-03", "issue_qty": 2340, "pending_qty": 0, "received_qty": 2340, "date": "2025-11-05"}, {"lot_no": "LT-05577", "design": "417-03", "issue_qty": 2505, "pending_qty": 0, "received_qty": 2505, "date": "2025-10-31"}, {"lot_no": "LT-05580", "design": "417-03", "issue_qty": 723, "pending_qty": 723, "received_qty": 0, "date": "2025-10-31"}, {"lot_no": "LT-04883", "design": "K-5805", "issue_qty": 390, "pending_qty": 0, "received_qty": 390, "date": "2025-10-16"}, {"lot_no": "LT-05373", "design": "417-03", "issue_qty": 2772, "pending_qty": 0, "received_qty": 2772, "date": "2025-10-14"}, {"lot_no": "LT-05378", "design": "417-03", "issue_qty": 2160, "pending_qty": 0, "received_qty": 2160, "date": "2025-10-14"}, {"lot_no": "LT-04603", "design": "K-5805", "issue_qty": 132, "pending_qty": 19, "received_qty": 113, "date": "2025-10-12"}, {"lot_no": "LT-05310", "design": "417-03", "issue_qty": 1440, "pending_qty": 0, "received_qty": 1440, "date": "2025-10-11"}, {"lot_no": "LT-05387", "design": "417-06", "issue_qty": 2790, "pending_qty": 0, "received_qty": 2790, "date": "2025-10-09"}, {"lot_no": "LT-05374", "design": "417-03", "issue_qty": 1476, "pending_qty": 0, "received_qty": 1476, "date": "2025-10-08"}, {"lot_no": "LT-05375", "design": "417-03", "issue_qty": 1730, "pending_qty": 0, "received_qty": 1730, "date": "2025-10-08"}, {"lot_no": "LT-05304", "design": "417-03", "issue_qty": 1233, "pending_qty": 0, "received_qty": 1233, "date": "2025-10-06"}, {"lot_no": "LT-05311", "design": "417-03", "issue_qty": 1104, "pending_qty": 0, "received_qty": 1104, "date": "2025-10-06"}]},
+    {name:"KAVITA MATHURADAS LOHAR",batches:50,avgDays:12,invoice:"\u20b982",debit:0.8,alter:1.0,cap:1400,city:"Surat",issue_qty:16467,pending_qty:650,received_qty:15817,designs:["011-03", "011-04", "320-02", "320-03", "320-04", "320-05", "320-07", "320-08", "327-01", "327-02", "327-03", "330-01", "334-01", "334-03", "335-01", "336-01", "336-03", "336-04", "336-05", "339-02", "339-03", "417-03", "417-04", "417-05", "417-06", "444-04", "444-05"],lots:[{"lot_no": "LT-05414", "design": "011-04", "issue_qty": 234, "pending_qty": 4, "received_qty": 230, "date": "2025-12-03"}, {"lot_no": "LT-04532", "design": "320-02", "issue_qty": 2, "pending_qty": 2, "received_qty": 0, "date": "2025-11-23"}, {"lot_no": "LT-05413", "design": "011-03", "issue_qty": 777, "pending_qty": 0, "received_qty": 777, "date": "2025-11-20"}, {"lot_no": "LT-05450", "design": "320-05", "issue_qty": 1, "pending_qty": 1, "received_qty": 0, "date": "2025-11-19"}, {"lot_no": "LT-04213", "design": "320-08", "issue_qty": 8, "pending_qty": 8, "received_qty": 0, "date": "2025-11-19"}, {"lot_no": "LT-05354", "design": "336-04", "issue_qty": 808, "pending_qty": 0, "received_qty": 808, "date": "2025-10-14"}, {"lot_no": "LT-05106", "design": "336-01", "issue_qty": 2, "pending_qty": 2, "received_qty": 0, "date": "2025-10-14"}, {"lot_no": "LT-05253", "design": "320-02", "issue_qty": 1160, "pending_qty": 0, "received_qty": 1160, "date": "2025-10-13"}, {"lot_no": "LT-05266", "design": "320-07", "issue_qty": 12, "pending_qty": 2, "received_qty": 10, "date": "2025-10-13"}, {"lot_no": "LT-05212", "design": "444-04", "issue_qty": 540, "pending_qty": 0, "received_qty": 540, "date": "2025-10-11"}, {"lot_no": "LT-05218", "design": "444-04", "issue_qty": 537, "pending_qty": 0, "received_qty": 537, "date": "2025-10-11"}, {"lot_no": "LT-05002", "design": "335-01", "issue_qty": 5, "pending_qty": 5, "received_qty": 0, "date": "2025-10-08"}, {"lot_no": "LT-05046", "design": "444-04", "issue_qty": 480, "pending_qty": 0, "received_qty": 480, "date": "2025-10-07"}, {"lot_no": "LT-05223", "design": "444-05", "issue_qty": 500, "pending_qty": 0, "received_qty": 500, "date": "2025-10-07"}, {"lot_no": "LT-05213", "design": "444-04", "issue_qty": 470, "pending_qty": -1, "received_qty": 471, "date": "2025-10-04"}, {"lot_no": "LT-05217", "design": "444-04", "issue_qty": 438, "pending_qty": 0, "received_qty": 438, "date": "2025-10-04"}, {"lot_no": "LT-05044", "design": "444-04", "issue_qty": 448, "pending_qty": 0, "received_qty": 448, "date": "2025-10-02"}, {"lot_no": "LT-05047", "design": "444-04", "issue_qty": 419, "pending_qty": 0, "received_qty": 419, "date": "2025-10-01"}, {"lot_no": "LT-05226", "design": "444-05", "issue_qty": 550, "pending_qty": 0, "received_qty": 550, "date": "2025-10-01"}, {"lot_no": "LT-05227", "design": "444-05", "issue_qty": 498, "pending_qty": 0, "received_qty": 498, "date": "2025-10-01"}]},
+    {name:"MOHD MERAJ",batches:43,avgDays:11,invoice:"\u20b979",debit:0.7,alter:1.0,cap:1600,city:"Surat",issue_qty:18640,pending_qty:134,received_qty:18506,designs:["320-01", "320-03", "335-04", "336-04", "336-05", "342-01", "342-03", "342-04", "350-01", "350-02", "350-03", "350-04", "351-01", "351-02", "351-03", "352-01", "352-02", "352-03", "352-04", "353-01", "353-02", "353-03", "353-04", "354-01", "354-02", "354-03", "355-01", "355-02", "417-06", "444-03", "444-04", "444-05", "444-07", "444-08", "497-04"],lots:[{"lot_no": "LT-05891", "design": "354-01", "issue_qty": 19, "pending_qty": 4, "received_qty": 15, "date": "2026-02-17"}, {"lot_no": "LT-05749", "design": "444-05", "issue_qty": 1500, "pending_qty": 0, "received_qty": 1500, "date": "2026-01-14"}, {"lot_no": "LT-06183", "design": "444-08", "issue_qty": 1470, "pending_qty": 0, "received_qty": 1470, "date": "2026-01-14"}, {"lot_no": "LT-05893", "design": "354-03", "issue_qty": 301, "pending_qty": 0, "received_qty": 301, "date": "2026-01-12"}, {"lot_no": "LT-05884", "design": "355-01", "issue_qty": 249, "pending_qty": 0, "received_qty": 249, "date": "2026-01-12"}, {"lot_no": "LT-05896", "design": "354-02", "issue_qty": 270, "pending_qty": 0, "received_qty": 270, "date": "2026-01-12"}, {"lot_no": "LT-05846", "design": "352-01", "issue_qty": 10, "pending_qty": 10, "received_qty": 0, "date": "2026-01-12"}, {"lot_no": "LT-05847", "design": "352-02", "issue_qty": 4, "pending_qty": 4, "received_qty": 0, "date": "2026-01-12"}, {"lot_no": "LT-05849", "design": "352-04", "issue_qty": 7, "pending_qty": 7, "received_qty": 0, "date": "2026-01-12"}, {"lot_no": "LT-05848", "design": "352-03", "issue_qty": 1, "pending_qty": 1, "received_qty": 0, "date": "2026-01-12"}, {"lot_no": "LT-05885", "design": "355-02", "issue_qty": 1, "pending_qty": 1, "received_qty": 0, "date": "2026-01-12"}, {"lot_no": "LT-05705", "design": "444-03", "issue_qty": 1638, "pending_qty": 0, "received_qty": 1638, "date": "2026-01-08"}, {"lot_no": "LT-05832", "design": "350-02", "issue_qty": 270, "pending_qty": 0, "received_qty": 270, "date": "2026-01-08"}, {"lot_no": "LT-05831", "design": "350-01", "issue_qty": 270, "pending_qty": 0, "received_qty": 270, "date": "2026-01-07"}, {"lot_no": "LT-05833", "design": "350-03", "issue_qty": 210, "pending_qty": 0, "received_qty": 210, "date": "2026-01-07"}, {"lot_no": "LT-05834", "design": "350-04", "issue_qty": 300, "pending_qty": 0, "received_qty": 300, "date": "2026-01-07"}, {"lot_no": "LT-05427", "design": "335-04", "issue_qty": 392, "pending_qty": 0, "received_qty": 392, "date": "2026-01-07"}, {"lot_no": "LT-05845", "design": "351-03", "issue_qty": 1, "pending_qty": 1, "received_qty": 0, "date": "2026-01-07"}, {"lot_no": "LT-06143", "design": "342-04", "issue_qty": 340, "pending_qty": 0, "received_qty": 340, "date": "2026-01-05"}, {"lot_no": "LT-06047", "design": "342-04", "issue_qty": 245, "pending_qty": 0, "received_qty": 245, "date": "2026-01-05"}]},
+    {name:"SHAVANA MOHAMMED SUFIYAN",batches:41,avgDays:10,invoice:"\u20b935",debit:0.8,alter:1.2,cap:1300,city:"Surat",issue_qty:15691,pending_qty:175,received_qty:15516,designs:["002-01", "002-02", "002-03", "002-04", "417-03", "417-04", "417-05", "417-06", "417-07", "444-04", "444-06", "483-01", "483-04", "488-01", "488-02", "488-03", "488-04", "K-7001"],lots:[{"lot_no": "LT-05428", "design": "K-7001", "issue_qty": 1119, "pending_qty": 0, "received_qty": 1119, "date": "2025-11-07"}, {"lot_no": "LT-05130", "design": "002-02", "issue_qty": 171, "pending_qty": 0, "received_qty": 171, "date": "2025-10-29"}, {"lot_no": "LT-05131", "design": "002-03", "issue_qty": 165, "pending_qty": 0, "received_qty": 165, "date": "2025-10-29"}, {"lot_no": "LT-05132", "design": "002-04", "issue_qty": 186, "pending_qty": 0, "received_qty": 186, "date": "2025-10-29"}, {"lot_no": "LT-05129", "design": "002-01", "issue_qty": 201, "pending_qty": 0, "received_qty": 201, "date": "2025-10-29"}, {"lot_no": "LT-05150", "design": "417-05", "issue_qty": 340, "pending_qty": 0, "received_qty": 340, "date": "2025-10-19"}, {"lot_no": "LT-05163", "design": "417-07", "issue_qty": 453, "pending_qty": 0, "received_qty": 453, "date": "2025-10-19"}, {"lot_no": "LT-05188", "design": "417-05", "issue_qty": 455, "pending_qty": 0, "received_qty": 455, "date": "2025-10-19"}, {"lot_no": "LT-05190", "design": "417-05", "issue_qty": 38, "pending_qty": 38, "received_qty": 0, "date": "2025-10-19"}, {"lot_no": "LT-05151", "design": "417-05", "issue_qty": 309, "pending_qty": 0, "received_qty": 309, "date": "2025-10-14"}, {"lot_no": "LT-05386", "design": "417-06", "issue_qty": 534, "pending_qty": 0, "received_qty": 534, "date": "2025-10-14"}, {"lot_no": "LT-05208", "design": "444-04", "issue_qty": 491, "pending_qty": 0, "received_qty": 491, "date": "2025-10-14"}, {"lot_no": "LT-05212", "design": "444-04", "issue_qty": 554, "pending_qty": 0, "received_qty": 554, "date": "2025-10-14"}, {"lot_no": "LT-05216", "design": "444-04", "issue_qty": 442, "pending_qty": 0, "received_qty": 442, "date": "2025-10-14"}, {"lot_no": "LT-04957", "design": "417-04", "issue_qty": 465, "pending_qty": 0, "received_qty": 465, "date": "2025-10-10"}, {"lot_no": "LT-05213", "design": "444-04", "issue_qty": 455, "pending_qty": 0, "received_qty": 455, "date": "2025-10-10"}, {"lot_no": "LT-05215", "design": "444-04", "issue_qty": 314, "pending_qty": 0, "received_qty": 314, "date": "2025-10-10"}, {"lot_no": "LT-05214", "design": "444-04", "issue_qty": 243, "pending_qty": 0, "received_qty": 243, "date": "2025-10-10"}, {"lot_no": "LT-05059", "design": "444-04", "issue_qty": 288, "pending_qty": 0, "received_qty": 288, "date": "2025-10-10"}, {"lot_no": "LT-05305", "design": "417-03", "issue_qty": 348, "pending_qty": 0, "received_qty": 348, "date": "2025-10-08"}]},
+    {name:"ISLAM NASARUDDIN HAWARI",batches:35,avgDays:10,invoice:"\u20b9100",debit:0.8,alter:1.2,cap:1300,city:"Surat",issue_qty:15577,pending_qty:-7,received_qty:15584,designs:["012-01", "012-02", "012-03", "012-04", "417-03", "417-04", "417-05", "417-06", "444-04", "444-06", "476-03", "483-01", "483-03", "483-04", "490-02", "490-03", "490-04"],lots:[{"lot_no": "LT-05640", "design": "417-06", "issue_qty": 2655, "pending_qty": 0, "received_qty": 2655, "date": "2025-11-10"}, {"lot_no": "LT-05579", "design": "417-03", "issue_qty": 930, "pending_qty": 0, "received_qty": 930, "date": "2025-11-04"}, {"lot_no": "LT-05416", "design": "012-02", "issue_qty": 166, "pending_qty": 0, "received_qty": 166, "date": "2025-11-03"}, {"lot_no": "LT-05418", "design": "012-04", "issue_qty": 174, "pending_qty": 0, "received_qty": 174, "date": "2025-11-03"}, {"lot_no": "LT-05417", "design": "012-03", "issue_qty": 180, "pending_qty": 0, "received_qty": 180, "date": "2025-11-03"}, {"lot_no": "LT-05415", "design": "012-01", "issue_qty": 228, "pending_qty": 0, "received_qty": 228, "date": "2025-11-02"}, {"lot_no": "LT-05384", "design": "417-04", "issue_qty": 896, "pending_qty": -20, "received_qty": 916, "date": "2025-10-17"}, {"lot_no": "LT-05300", "design": "417-03", "issue_qty": 904, "pending_qty": 0, "received_qty": 904, "date": "2025-10-17"}, {"lot_no": "LT-05188", "design": "417-05", "issue_qty": 480, "pending_qty": 0, "received_qty": 480, "date": "2025-10-14"}, {"lot_no": "LT-05190", "design": "417-05", "issue_qty": 627, "pending_qty": 0, "received_qty": 627, "date": "2025-10-14"}, {"lot_no": "LT-05377", "design": "417-03", "issue_qty": 570, "pending_qty": 0, "received_qty": 570, "date": "2025-10-13"}, {"lot_no": "LT-05151", "design": "417-05", "issue_qty": 510, "pending_qty": 0, "received_qty": 510, "date": "2025-10-07"}, {"lot_no": "LT-05185", "design": "417-05", "issue_qty": 420, "pending_qty": 0, "received_qty": 420, "date": "2025-10-07"}, {"lot_no": "LT-05186", "design": "417-05", "issue_qty": 430, "pending_qty": 0, "received_qty": 430, "date": "2025-10-07"}, {"lot_no": "LT-05327", "design": "417-04", "issue_qty": 480, "pending_qty": 0, "received_qty": 480, "date": "2025-10-04"}, {"lot_no": "LT-05326", "design": "417-04", "issue_qty": 545, "pending_qty": 0, "received_qty": 545, "date": "2025-10-04"}, {"lot_no": "LT-05316", "design": "417-06", "issue_qty": 572, "pending_qty": 0, "received_qty": 572, "date": "2025-10-04"}, {"lot_no": "LT-05207", "design": "417-05", "issue_qty": 470, "pending_qty": 0, "received_qty": 470, "date": "2025-10-01"}, {"lot_no": "LT-05309", "design": "417-03", "issue_qty": 470, "pending_qty": 0, "received_qty": 470, "date": "2025-10-01"}, {"lot_no": "LT-05319", "design": "417-04", "issue_qty": 495, "pending_qty": 0, "received_qty": 495, "date": "2025-09-30"}]},
+    {name:"JUBER AHMAD",batches:34,avgDays:9,invoice:"\u20b999",debit:0.9,alter:1.4,cap:1300,city:"Surat",issue_qty:15280,pending_qty:8,received_qty:15272,designs:["320-02", "320-03", "336-07", "339-01", "339-02", "339-03", "340-01", "341-01", "341-02", "341-03", "341-04", "342-01", "342-02", "342-03", "342-04", "343-01", "343-02", "343-03", "343-04", "417-03", "417-04", "417-06", "417-07", "444-03", "444-04", "444-05", "444-06"],lots:[{"lot_no": "LT-04756", "design": "339-02", "issue_qty": 64, "pending_qty": 1, "received_qty": 63, "date": "2025-11-13"}, {"lot_no": "LT-05447", "design": "320-03", "issue_qty": 812, "pending_qty": 0, "received_qty": 812, "date": "2025-11-11"}, {"lot_no": "LT-05457", "design": "336-07", "issue_qty": 916, "pending_qty": 0, "received_qty": 916, "date": "2025-11-11"}, {"lot_no": "LT-05211", "design": "444-04", "issue_qty": 525, "pending_qty": 0, "received_qty": 525, "date": "2025-11-11"}, {"lot_no": "LT-05422", "design": "339-01", "issue_qty": 520, "pending_qty": 0, "received_qty": 520, "date": "2025-11-07"}, {"lot_no": "LT-05423", "design": "339-02", "issue_qty": 510, "pending_qty": 0, "received_qty": 510, "date": "2025-11-07"}, {"lot_no": "LT-05424", "design": "339-03", "issue_qty": 860, "pending_qty": 0, "received_qty": 860, "date": "2025-11-06"}, {"lot_no": "LT-05636", "design": "417-06", "issue_qty": 870, "pending_qty": 0, "received_qty": 870, "date": "2025-11-04"}, {"lot_no": "LT-05552", "design": "340-01", "issue_qty": 834, "pending_qty": 0, "received_qty": 834, "date": "2025-11-04"}, {"lot_no": "LT-05576", "design": "417-03", "issue_qty": 905, "pending_qty": 0, "received_qty": 905, "date": "2025-11-04"}, {"lot_no": "LT-05013", "design": "343-01", "issue_qty": 160, "pending_qty": 0, "received_qty": 160, "date": "2025-10-27"}, {"lot_no": "LT-05015", "design": "343-03", "issue_qty": 160, "pending_qty": 0, "received_qty": 160, "date": "2025-10-27"}, {"lot_no": "LT-05014", "design": "343-02", "issue_qty": 155, "pending_qty": 0, "received_qty": 155, "date": "2025-10-27"}, {"lot_no": "LT-05016", "design": "343-04", "issue_qty": 150, "pending_qty": 0, "received_qty": 150, "date": "2025-10-27"}, {"lot_no": "LT-04985", "design": "341-01", "issue_qty": 180, "pending_qty": 0, "received_qty": 180, "date": "2025-10-19"}, {"lot_no": "LT-04986", "design": "341-02", "issue_qty": 225, "pending_qty": 0, "received_qty": 225, "date": "2025-10-19"}, {"lot_no": "LT-04988", "design": "341-04", "issue_qty": 175, "pending_qty": 0, "received_qty": 175, "date": "2025-10-19"}, {"lot_no": "LT-04973", "design": "342-01", "issue_qty": 205, "pending_qty": 0, "received_qty": 205, "date": "2025-10-19"}, {"lot_no": "LT-04974", "design": "342-02", "issue_qty": 205, "pending_qty": 0, "received_qty": 205, "date": "2025-10-19"}, {"lot_no": "LT-04975", "design": "342-03", "issue_qty": 205, "pending_qty": 0, "received_qty": 205, "date": "2025-10-19"}]},
+    {name:"AKABAR ANSARI",batches:32,avgDays:9,invoice:"\u20b9124",debit:1.0,alter:1.6,cap:1000,city:"Surat",issue_qty:12065,pending_qty:71,received_qty:11994,designs:["417-04", "417-07", "444-01", "444-02", "444-03", "444-04", "444-05", "444-06", "483-01", "483-02", "483-03"],lots:[{"lot_no": "LT-04720", "design": "417-04", "issue_qty": 3, "pending_qty": 3, "received_qty": 0, "date": "2025-10-16"}, {"lot_no": "LT-05092", "design": "483-03", "issue_qty": 480, "pending_qty": 0, "received_qty": 480, "date": "2025-10-13"}, {"lot_no": "LT-05090", "design": "483-02", "issue_qty": 545, "pending_qty": 0, "received_qty": 545, "date": "2025-10-12"}, {"lot_no": "LT-05208", "design": "444-04", "issue_qty": 475, "pending_qty": 0, "received_qty": 475, "date": "2025-10-11"}, {"lot_no": "LT-05219", "design": "444-04", "issue_qty": 528, "pending_qty": 0, "received_qty": 528, "date": "2025-10-10"}, {"lot_no": "LT-05087", "design": "483-01", "issue_qty": 474, "pending_qty": 0, "received_qty": 474, "date": "2025-10-02"}, {"lot_no": "LT-05091", "design": "483-03", "issue_qty": 405, "pending_qty": 0, "received_qty": 405, "date": "2025-10-02"}, {"lot_no": "LT-05088", "design": "483-01", "issue_qty": 544, "pending_qty": 0, "received_qty": 544, "date": "2025-10-02"}, {"lot_no": "LT-05043", "design": "444-04", "issue_qty": 498, "pending_qty": 0, "received_qty": 498, "date": "2025-10-02"}, {"lot_no": "LT-05222", "design": "444-05", "issue_qty": 275, "pending_qty": 0, "received_qty": 275, "date": "2025-10-01"}, {"lot_no": "LT-05220", "design": "444-05", "issue_qty": 540, "pending_qty": 0, "received_qty": 540, "date": "2025-10-01"}, {"lot_no": "LT-05262", "design": "444-05", "issue_qty": 340, "pending_qty": 0, "received_qty": 340, "date": "2025-10-01"}, {"lot_no": "LT-05058", "design": "444-05", "issue_qty": 438, "pending_qty": 0, "received_qty": 438, "date": "2025-10-01"}, {"lot_no": "LT-05152", "design": "444-01", "issue_qty": 196, "pending_qty": 0, "received_qty": 196, "date": "2025-09-25"}, {"lot_no": "LT-05125", "design": "444-06", "issue_qty": 465, "pending_qty": 0, "received_qty": 465, "date": "2025-09-25"}, {"lot_no": "LT-05060", "design": "444-02", "issue_qty": 295, "pending_qty": 0, "received_qty": 295, "date": "2025-09-24"}, {"lot_no": "LT-05232", "design": "444-06", "issue_qty": 465, "pending_qty": 0, "received_qty": 465, "date": "2025-09-24"}, {"lot_no": "LT-05231", "design": "444-05", "issue_qty": 380, "pending_qty": 0, "received_qty": 380, "date": "2025-09-23"}, {"lot_no": "LT-05230", "design": "444-05", "issue_qty": 480, "pending_qty": 0, "received_qty": 480, "date": "2025-09-23"}, {"lot_no": "LT-05042", "design": "444-04", "issue_qty": 460, "pending_qty": 0, "received_qty": 460, "date": "2025-09-23"}]},
+    {name:"ABUSUFIYAN ANSARI",batches:27,avgDays:9,invoice:"\u20b949",debit:1.3,alter:1.9,cap:1100,city:"Surat",issue_qty:13372,pending_qty:419,received_qty:12953,designs:["001-01", "001-02", "001-03", "001-04", "K-5903", "K-6101", "K-6102", "K-6103", "K-6104", "K-6701", "K-6702", "K-6703", "K-7802", "K-7803", "K-7804"],lots:[{"lot_no": "LT-05475", "design": "K-6701", "issue_qty": 1719, "pending_qty": 0, "received_qty": 1719, "date": "2025-11-11"}, {"lot_no": "LT-05657", "design": "K-6701", "issue_qty": 1455, "pending_qty": 0, "received_qty": 1455, "date": "2025-11-11"}, {"lot_no": "LT-05394", "design": "K-6701", "issue_qty": 927, "pending_qty": 0, "received_qty": 927, "date": "2025-11-11"}, {"lot_no": "LT-05476", "design": "K-6701", "issue_qty": 1701, "pending_qty": 0, "received_qty": 1701, "date": "2025-11-11"}, {"lot_no": "LT-04749", "design": "K-7804", "issue_qty": 648, "pending_qty": 36, "received_qty": 612, "date": "2025-11-03"}, {"lot_no": "LT-04314", "design": "K-6101", "issue_qty": 8, "pending_qty": 8, "received_qty": 0, "date": "2025-10-31"}, {"lot_no": "LT-04525", "design": "K-5903", "issue_qty": 36, "pending_qty": 36, "received_qty": 0, "date": "2025-10-27"}, {"lot_no": "LT-05136", "design": "K-6701", "issue_qty": 438, "pending_qty": 0, "received_qty": 438, "date": "2025-10-18"}, {"lot_no": "LT-05349", "design": "K-6701", "issue_qty": 9, "pending_qty": 9, "received_qty": 0, "date": "2025-10-18"}, {"lot_no": "LT-05351", "design": "K-6703", "issue_qty": 9, "pending_qty": 9, "received_qty": 0, "date": "2025-10-18"}, {"lot_no": "LT-04971", "design": "001-01", "issue_qty": 348, "pending_qty": 0, "received_qty": 348, "date": "2025-10-15"}, {"lot_no": "LT-04938", "design": "001-02", "issue_qty": 372, "pending_qty": 0, "received_qty": 372, "date": "2025-10-15"}, {"lot_no": "LT-04941", "design": "001-04", "issue_qty": 2, "pending_qty": 2, "received_qty": 0, "date": "2025-10-15"}, {"lot_no": "LT-04972", "design": "001-03", "issue_qty": 2, "pending_qty": 2, "received_qty": 0, "date": "2025-10-15"}, {"lot_no": "LT-05165", "design": "K-6701", "issue_qty": 168, "pending_qty": 36, "received_qty": 132, "date": "2025-10-12"}, {"lot_no": "LT-05167", "design": "K-6703", "issue_qty": 76, "pending_qty": 4, "received_qty": 72, "date": "2025-10-12"}, {"lot_no": "LT-05166", "design": "K-6702", "issue_qty": 1683, "pending_qty": 0, "received_qty": 1683, "date": "2025-10-05"}, {"lot_no": "LT-04853", "design": "K-6701", "issue_qty": 879, "pending_qty": 0, "received_qty": 879, "date": "2025-09-23"}, {"lot_no": "LT-04854", "design": "K-6702", "issue_qty": 1122, "pending_qty": 0, "received_qty": 1122, "date": "2025-09-23"}, {"lot_no": "LT-04855", "design": "K-6703", "issue_qty": 1275, "pending_qty": 0, "received_qty": 1275, "date": "2025-09-23"}]},
+    {name:"Shree Apparels",batches:23,avgDays:8,invoice:"\u20b979",debit:1.3,alter:1.9,cap:2700,city:"Surat",issue_qty:32902,pending_qty:373,received_qty:32529,designs:["417-03", "417-04", "417-05", "417-06", "417-07"],lots:[{"lot_no": "LT-05591", "design": "417-03", "issue_qty": 2640, "pending_qty": 0, "received_qty": 2640, "date": "2025-12-05"}, {"lot_no": "LT-05583", "design": "417-03", "issue_qty": 2610, "pending_qty": 0, "received_qty": 2610, "date": "2025-11-23"}, {"lot_no": "LT-05578", "design": "417-03", "issue_qty": 2445, "pending_qty": 0, "received_qty": 2445, "date": "2025-11-09"}, {"lot_no": "LT-05651", "design": "417-06", "issue_qty": 265, "pending_qty": 265, "received_qty": 0, "date": "2025-11-09"}, {"lot_no": "LT-05635", "design": "417-06", "issue_qty": 2670, "pending_qty": 0, "received_qty": 2670, "date": "2025-11-04"}, {"lot_no": "LT-05381", "design": "417-03", "issue_qty": 2724, "pending_qty": 0, "received_qty": 2724, "date": "2025-10-15"}, {"lot_no": "LT-05380", "design": "417-03", "issue_qty": 2844, "pending_qty": 0, "received_qty": 2844, "date": "2025-10-15"}, {"lot_no": "LT-05187", "design": "417-05", "issue_qty": 1350, "pending_qty": 0, "received_qty": 1350, "date": "2025-10-13"}, {"lot_no": "LT-05318", "design": "417-04", "issue_qty": 1740, "pending_qty": 0, "received_qty": 1740, "date": "2025-10-08"}, {"lot_no": "LT-05193", "design": "417-05", "issue_qty": 1539, "pending_qty": 0, "received_qty": 1539, "date": "2025-10-06"}, {"lot_no": "LT-05189", "design": "417-05", "issue_qty": 1065, "pending_qty": 0, "received_qty": 1065, "date": "2025-10-06"}, {"lot_no": "LT-05149", "design": "417-04", "issue_qty": 1503, "pending_qty": 0, "received_qty": 1503, "date": "2025-09-25"}, {"lot_no": "LT-05147", "design": "417-04", "issue_qty": 648, "pending_qty": 0, "received_qty": 648, "date": "2025-09-24"}, {"lot_no": "LT-05141", "design": "417-04", "issue_qty": 1380, "pending_qty": 0, "received_qty": 1380, "date": "2025-09-23"}, {"lot_no": "LT-05157", "design": "417-03", "issue_qty": 388, "pending_qty": 0, "received_qty": 388, "date": "2025-09-23"}, {"lot_no": "LT-05146", "design": "417-04", "issue_qty": 1575, "pending_qty": 0, "received_qty": 1575, "date": "2025-09-23"}, {"lot_no": "LT-05114", "design": "417-03", "issue_qty": 490, "pending_qty": -2, "received_qty": 492, "date": "2025-09-19"}, {"lot_no": "LT-04726", "design": "417-05", "issue_qty": 175, "pending_qty": 0, "received_qty": 175, "date": "2025-09-19"}, {"lot_no": "LT-04948", "design": "417-04", "issue_qty": 913, "pending_qty": -1, "received_qty": 914, "date": "2025-09-16"}, {"lot_no": "LT-05001", "design": "417-04", "issue_qty": 1185, "pending_qty": 0, "received_qty": 1185, "date": "2025-09-15"}]},
+  ],
+  cut_stitch: [
+    {name:"GORAPATI FASHION",batches:53,avgDays:13,invoice:"\u20b989",debit:0.5,alter:0.6,cap:4200,city:"Surat",issue_qty:50239,pending_qty:1206,received_qty:49033,designs:["417-03", "417-04", "417-06", "444-03", "444-04", "K-5801", "K-5802", "K-5803", "K-5804", "K-5805"],lots:[{"lot_no": "LT-06095", "design": "417-03", "issue_qty": 1224, "pending_qty": -1, "received_qty": 1225, "date": "2025-12-27"}, {"lot_no": "LT-05590", "design": "417-03", "issue_qty": 1812, "pending_qty": 0, "received_qty": 1812, "date": "2025-12-22"}, {"lot_no": "LT-05662", "design": "417-04", "issue_qty": 1305, "pending_qty": 0, "received_qty": 1305, "date": "2025-12-18"}, {"lot_no": "LT-05610", "design": "417-04", "issue_qty": 1275, "pending_qty": 0, "received_qty": 1275, "date": "2025-11-25"}, {"lot_no": "LT-05605", "design": "417-04", "issue_qty": 1365, "pending_qty": 0, "received_qty": 1365, "date": "2025-11-21"}, {"lot_no": "LT-05598", "design": "417-04", "issue_qty": 1215, "pending_qty": 0, "received_qty": 1215, "date": "2025-11-15"}, {"lot_no": "LT-05637", "design": "417-06", "issue_qty": 2655, "pending_qty": 0, "received_qty": 2655, "date": "2025-11-07"}, {"lot_no": "LT-05571", "design": "417-03", "issue_qty": 2340, "pending_qty": 0, "received_qty": 2340, "date": "2025-11-05"}, {"lot_no": "LT-05577", "design": "417-03", "issue_qty": 2505, "pending_qty": 0, "received_qty": 2505, "date": "2025-10-31"}, {"lot_no": "LT-05580", "design": "417-03", "issue_qty": 723, "pending_qty": 723, "received_qty": 0, "date": "2025-10-31"}, {"lot_no": "LT-04883", "design": "K-5805", "issue_qty": 390, "pending_qty": 0, "received_qty": 390, "date": "2025-10-16"}, {"lot_no": "LT-05373", "design": "417-03", "issue_qty": 2772, "pending_qty": 0, "received_qty": 2772, "date": "2025-10-14"}, {"lot_no": "LT-05378", "design": "417-03", "issue_qty": 2160, "pending_qty": 0, "received_qty": 2160, "date": "2025-10-14"}, {"lot_no": "LT-04603", "design": "K-5805", "issue_qty": 132, "pending_qty": 19, "received_qty": 113, "date": "2025-10-12"}, {"lot_no": "LT-05310", "design": "417-03", "issue_qty": 1440, "pending_qty": 0, "received_qty": 1440, "date": "2025-10-11"}, {"lot_no": "LT-05387", "design": "417-06", "issue_qty": 2790, "pending_qty": 0, "received_qty": 2790, "date": "2025-10-09"}, {"lot_no": "LT-05374", "design": "417-03", "issue_qty": 1476, "pending_qty": 0, "received_qty": 1476, "date": "2025-10-08"}, {"lot_no": "LT-05375", "design": "417-03", "issue_qty": 1730, "pending_qty": 0, "received_qty": 1730, "date": "2025-10-08"}, {"lot_no": "LT-05304", "design": "417-03", "issue_qty": 1233, "pending_qty": 0, "received_qty": 1233, "date": "2025-10-06"}, {"lot_no": "LT-05311", "design": "417-03", "issue_qty": 1104, "pending_qty": 0, "received_qty": 1104, "date": "2025-10-06"}]},
+    {name:"KAVITA MATHURADAS LOHAR",batches:50,avgDays:13,invoice:"\u20b982",debit:0.7,alter:0.9,cap:1400,city:"Surat",issue_qty:16467,pending_qty:650,received_qty:15817,designs:["011-03", "011-04", "320-02", "320-03", "320-04", "320-05", "320-07", "320-08", "327-01", "327-02", "327-03", "330-01", "334-01", "334-03", "335-01", "336-01", "336-03", "336-04", "336-05", "339-02", "339-03", "417-03", "417-04", "417-05", "417-06", "444-04", "444-05"],lots:[{"lot_no": "LT-05414", "design": "011-04", "issue_qty": 234, "pending_qty": 4, "received_qty": 230, "date": "2025-12-03"}, {"lot_no": "LT-04532", "design": "320-02", "issue_qty": 2, "pending_qty": 2, "received_qty": 0, "date": "2025-11-23"}, {"lot_no": "LT-05413", "design": "011-03", "issue_qty": 777, "pending_qty": 0, "received_qty": 777, "date": "2025-11-20"}, {"lot_no": "LT-05450", "design": "320-05", "issue_qty": 1, "pending_qty": 1, "received_qty": 0, "date": "2025-11-19"}, {"lot_no": "LT-04213", "design": "320-08", "issue_qty": 8, "pending_qty": 8, "received_qty": 0, "date": "2025-11-19"}, {"lot_no": "LT-05354", "design": "336-04", "issue_qty": 808, "pending_qty": 0, "received_qty": 808, "date": "2025-10-14"}, {"lot_no": "LT-05106", "design": "336-01", "issue_qty": 2, "pending_qty": 2, "received_qty": 0, "date": "2025-10-14"}, {"lot_no": "LT-05253", "design": "320-02", "issue_qty": 1160, "pending_qty": 0, "received_qty": 1160, "date": "2025-10-13"}, {"lot_no": "LT-05266", "design": "320-07", "issue_qty": 12, "pending_qty": 2, "received_qty": 10, "date": "2025-10-13"}, {"lot_no": "LT-05212", "design": "444-04", "issue_qty": 540, "pending_qty": 0, "received_qty": 540, "date": "2025-10-11"}, {"lot_no": "LT-05218", "design": "444-04", "issue_qty": 537, "pending_qty": 0, "received_qty": 537, "date": "2025-10-11"}, {"lot_no": "LT-05002", "design": "335-01", "issue_qty": 5, "pending_qty": 5, "received_qty": 0, "date": "2025-10-08"}, {"lot_no": "LT-05046", "design": "444-04", "issue_qty": 480, "pending_qty": 0, "received_qty": 480, "date": "2025-10-07"}, {"lot_no": "LT-05223", "design": "444-05", "issue_qty": 500, "pending_qty": 0, "received_qty": 500, "date": "2025-10-07"}, {"lot_no": "LT-05213", "design": "444-04", "issue_qty": 470, "pending_qty": -1, "received_qty": 471, "date": "2025-10-04"}, {"lot_no": "LT-05217", "design": "444-04", "issue_qty": 438, "pending_qty": 0, "received_qty": 438, "date": "2025-10-04"}, {"lot_no": "LT-05044", "design": "444-04", "issue_qty": 448, "pending_qty": 0, "received_qty": 448, "date": "2025-10-02"}, {"lot_no": "LT-05047", "design": "444-04", "issue_qty": 419, "pending_qty": 0, "received_qty": 419, "date": "2025-10-01"}, {"lot_no": "LT-05226", "design": "444-05", "issue_qty": 550, "pending_qty": 0, "received_qty": 550, "date": "2025-10-01"}, {"lot_no": "LT-05227", "design": "444-05", "issue_qty": 498, "pending_qty": 0, "received_qty": 498, "date": "2025-10-01"}]},
+    {name:"MOHD MERAJ",batches:43,avgDays:11,invoice:"\u20b979",debit:0.6,alter:0.8,cap:1600,city:"Surat",issue_qty:18640,pending_qty:134,received_qty:18506,designs:["320-01", "320-03", "335-04", "336-04", "336-05", "342-01", "342-03", "342-04", "350-01", "350-02", "350-03", "350-04", "351-01", "351-02", "351-03", "352-01", "352-02", "352-03", "352-04", "353-01", "353-02", "353-03", "353-04", "354-01", "354-02", "354-03", "355-01", "355-02", "417-06", "444-03", "444-04", "444-05", "444-07", "444-08", "497-04"],lots:[{"lot_no": "LT-05891", "design": "354-01", "issue_qty": 19, "pending_qty": 4, "received_qty": 15, "date": "2026-02-17"}, {"lot_no": "LT-05749", "design": "444-05", "issue_qty": 1500, "pending_qty": 0, "received_qty": 1500, "date": "2026-01-14"}, {"lot_no": "LT-06183", "design": "444-08", "issue_qty": 1470, "pending_qty": 0, "received_qty": 1470, "date": "2026-01-14"}, {"lot_no": "LT-05893", "design": "354-03", "issue_qty": 301, "pending_qty": 0, "received_qty": 301, "date": "2026-01-12"}, {"lot_no": "LT-05884", "design": "355-01", "issue_qty": 249, "pending_qty": 0, "received_qty": 249, "date": "2026-01-12"}, {"lot_no": "LT-05896", "design": "354-02", "issue_qty": 270, "pending_qty": 0, "received_qty": 270, "date": "2026-01-12"}, {"lot_no": "LT-05846", "design": "352-01", "issue_qty": 10, "pending_qty": 10, "received_qty": 0, "date": "2026-01-12"}, {"lot_no": "LT-05847", "design": "352-02", "issue_qty": 4, "pending_qty": 4, "received_qty": 0, "date": "2026-01-12"}, {"lot_no": "LT-05849", "design": "352-04", "issue_qty": 7, "pending_qty": 7, "received_qty": 0, "date": "2026-01-12"}, {"lot_no": "LT-05848", "design": "352-03", "issue_qty": 1, "pending_qty": 1, "received_qty": 0, "date": "2026-01-12"}, {"lot_no": "LT-05885", "design": "355-02", "issue_qty": 1, "pending_qty": 1, "received_qty": 0, "date": "2026-01-12"}, {"lot_no": "LT-05705", "design": "444-03", "issue_qty": 1638, "pending_qty": 0, "received_qty": 1638, "date": "2026-01-08"}, {"lot_no": "LT-05832", "design": "350-02", "issue_qty": 270, "pending_qty": 0, "received_qty": 270, "date": "2026-01-08"}, {"lot_no": "LT-05831", "design": "350-01", "issue_qty": 270, "pending_qty": 0, "received_qty": 270, "date": "2026-01-07"}, {"lot_no": "LT-05833", "design": "350-03", "issue_qty": 210, "pending_qty": 0, "received_qty": 210, "date": "2026-01-07"}, {"lot_no": "LT-05834", "design": "350-04", "issue_qty": 300, "pending_qty": 0, "received_qty": 300, "date": "2026-01-07"}, {"lot_no": "LT-05427", "design": "335-04", "issue_qty": 392, "pending_qty": 0, "received_qty": 392, "date": "2026-01-07"}, {"lot_no": "LT-05845", "design": "351-03", "issue_qty": 1, "pending_qty": 1, "received_qty": 0, "date": "2026-01-07"}, {"lot_no": "LT-06143", "design": "342-04", "issue_qty": 340, "pending_qty": 0, "received_qty": 340, "date": "2026-01-05"}, {"lot_no": "LT-06047", "design": "342-04", "issue_qty": 245, "pending_qty": 0, "received_qty": 245, "date": "2026-01-05"}]},
+    {name:"ISLAM NASARUDDIN HAWARI",batches:35,avgDays:10,invoice:"\u20b9100",debit:0.6,alter:0.9,cap:1300,city:"Surat",issue_qty:15577,pending_qty:-7,received_qty:15584,designs:["012-01", "012-02", "012-03", "012-04", "417-03", "417-04", "417-05", "417-06", "444-04", "444-06", "476-03", "483-01", "483-03", "483-04", "490-02", "490-03", "490-04"],lots:[{"lot_no": "LT-05640", "design": "417-06", "issue_qty": 2655, "pending_qty": 0, "received_qty": 2655, "date": "2025-11-10"}, {"lot_no": "LT-05579", "design": "417-03", "issue_qty": 930, "pending_qty": 0, "received_qty": 930, "date": "2025-11-04"}, {"lot_no": "LT-05416", "design": "012-02", "issue_qty": 166, "pending_qty": 0, "received_qty": 166, "date": "2025-11-03"}, {"lot_no": "LT-05418", "design": "012-04", "issue_qty": 174, "pending_qty": 0, "received_qty": 174, "date": "2025-11-03"}, {"lot_no": "LT-05417", "design": "012-03", "issue_qty": 180, "pending_qty": 0, "received_qty": 180, "date": "2025-11-03"}, {"lot_no": "LT-05415", "design": "012-01", "issue_qty": 228, "pending_qty": 0, "received_qty": 228, "date": "2025-11-02"}, {"lot_no": "LT-05384", "design": "417-04", "issue_qty": 896, "pending_qty": -20, "received_qty": 916, "date": "2025-10-17"}, {"lot_no": "LT-05300", "design": "417-03", "issue_qty": 904, "pending_qty": 0, "received_qty": 904, "date": "2025-10-17"}, {"lot_no": "LT-05188", "design": "417-05", "issue_qty": 480, "pending_qty": 0, "received_qty": 480, "date": "2025-10-14"}, {"lot_no": "LT-05190", "design": "417-05", "issue_qty": 627, "pending_qty": 0, "received_qty": 627, "date": "2025-10-14"}, {"lot_no": "LT-05377", "design": "417-03", "issue_qty": 570, "pending_qty": 0, "received_qty": 570, "date": "2025-10-13"}, {"lot_no": "LT-05151", "design": "417-05", "issue_qty": 510, "pending_qty": 0, "received_qty": 510, "date": "2025-10-07"}, {"lot_no": "LT-05185", "design": "417-05", "issue_qty": 420, "pending_qty": 0, "received_qty": 420, "date": "2025-10-07"}, {"lot_no": "LT-05186", "design": "417-05", "issue_qty": 430, "pending_qty": 0, "received_qty": 430, "date": "2025-10-07"}, {"lot_no": "LT-05327", "design": "417-04", "issue_qty": 480, "pending_qty": 0, "received_qty": 480, "date": "2025-10-04"}, {"lot_no": "LT-05326", "design": "417-04", "issue_qty": 545, "pending_qty": 0, "received_qty": 545, "date": "2025-10-04"}, {"lot_no": "LT-05316", "design": "417-06", "issue_qty": 572, "pending_qty": 0, "received_qty": 572, "date": "2025-10-04"}, {"lot_no": "LT-05207", "design": "417-05", "issue_qty": 470, "pending_qty": 0, "received_qty": 470, "date": "2025-10-01"}, {"lot_no": "LT-05309", "design": "417-03", "issue_qty": 470, "pending_qty": 0, "received_qty": 470, "date": "2025-10-01"}, {"lot_no": "LT-05319", "design": "417-04", "issue_qty": 495, "pending_qty": 0, "received_qty": 495, "date": "2025-09-30"}]},
+    {name:"JUBER AHMAD",batches:34,avgDays:10,invoice:"\u20b999",debit:0.7,alter:1.1,cap:1300,city:"Surat",issue_qty:15280,pending_qty:8,received_qty:15272,designs:["320-02", "320-03", "336-07", "339-01", "339-02", "339-03", "340-01", "341-01", "341-02", "341-03", "341-04", "342-01", "342-02", "342-03", "342-04", "343-01", "343-02", "343-03", "343-04", "417-03", "417-04", "417-06", "417-07", "444-03", "444-04", "444-05", "444-06"],lots:[{"lot_no": "LT-04756", "design": "339-02", "issue_qty": 64, "pending_qty": 1, "received_qty": 63, "date": "2025-11-13"}, {"lot_no": "LT-05447", "design": "320-03", "issue_qty": 812, "pending_qty": 0, "received_qty": 812, "date": "2025-11-11"}, {"lot_no": "LT-05457", "design": "336-07", "issue_qty": 916, "pending_qty": 0, "received_qty": 916, "date": "2025-11-11"}, {"lot_no": "LT-05211", "design": "444-04", "issue_qty": 525, "pending_qty": 0, "received_qty": 525, "date": "2025-11-11"}, {"lot_no": "LT-05422", "design": "339-01", "issue_qty": 520, "pending_qty": 0, "received_qty": 520, "date": "2025-11-07"}, {"lot_no": "LT-05423", "design": "339-02", "issue_qty": 510, "pending_qty": 0, "received_qty": 510, "date": "2025-11-07"}, {"lot_no": "LT-05424", "design": "339-03", "issue_qty": 860, "pending_qty": 0, "received_qty": 860, "date": "2025-11-06"}, {"lot_no": "LT-05636", "design": "417-06", "issue_qty": 870, "pending_qty": 0, "received_qty": 870, "date": "2025-11-04"}, {"lot_no": "LT-05552", "design": "340-01", "issue_qty": 834, "pending_qty": 0, "received_qty": 834, "date": "2025-11-04"}, {"lot_no": "LT-05576", "design": "417-03", "issue_qty": 905, "pending_qty": 0, "received_qty": 905, "date": "2025-11-04"}, {"lot_no": "LT-05013", "design": "343-01", "issue_qty": 160, "pending_qty": 0, "received_qty": 160, "date": "2025-10-27"}, {"lot_no": "LT-05015", "design": "343-03", "issue_qty": 160, "pending_qty": 0, "received_qty": 160, "date": "2025-10-27"}, {"lot_no": "LT-05014", "design": "343-02", "issue_qty": 155, "pending_qty": 0, "received_qty": 155, "date": "2025-10-27"}, {"lot_no": "LT-05016", "design": "343-04", "issue_qty": 150, "pending_qty": 0, "received_qty": 150, "date": "2025-10-27"}, {"lot_no": "LT-04985", "design": "341-01", "issue_qty": 180, "pending_qty": 0, "received_qty": 180, "date": "2025-10-19"}, {"lot_no": "LT-04986", "design": "341-02", "issue_qty": 225, "pending_qty": 0, "received_qty": 225, "date": "2025-10-19"}, {"lot_no": "LT-04988", "design": "341-04", "issue_qty": 175, "pending_qty": 0, "received_qty": 175, "date": "2025-10-19"}, {"lot_no": "LT-04973", "design": "342-01", "issue_qty": 205, "pending_qty": 0, "received_qty": 205, "date": "2025-10-19"}, {"lot_no": "LT-04974", "design": "342-02", "issue_qty": 205, "pending_qty": 0, "received_qty": 205, "date": "2025-10-19"}, {"lot_no": "LT-04975", "design": "342-03", "issue_qty": 205, "pending_qty": 0, "received_qty": 205, "date": "2025-10-19"}]},
+    {name:"AKABAR ANSARI",batches:32,avgDays:10,invoice:"\u20b9124",debit:0.8,alter:1.3,cap:1000,city:"Surat",issue_qty:12065,pending_qty:71,received_qty:11994,designs:["417-04", "417-07", "444-01", "444-02", "444-03", "444-04", "444-05", "444-06", "483-01", "483-02", "483-03"],lots:[{"lot_no": "LT-04720", "design": "417-04", "issue_qty": 3, "pending_qty": 3, "received_qty": 0, "date": "2025-10-16"}, {"lot_no": "LT-05092", "design": "483-03", "issue_qty": 480, "pending_qty": 0, "received_qty": 480, "date": "2025-10-13"}, {"lot_no": "LT-05090", "design": "483-02", "issue_qty": 545, "pending_qty": 0, "received_qty": 545, "date": "2025-10-12"}, {"lot_no": "LT-05208", "design": "444-04", "issue_qty": 475, "pending_qty": 0, "received_qty": 475, "date": "2025-10-11"}, {"lot_no": "LT-05219", "design": "444-04", "issue_qty": 528, "pending_qty": 0, "received_qty": 528, "date": "2025-10-10"}, {"lot_no": "LT-05087", "design": "483-01", "issue_qty": 474, "pending_qty": 0, "received_qty": 474, "date": "2025-10-02"}, {"lot_no": "LT-05091", "design": "483-03", "issue_qty": 405, "pending_qty": 0, "received_qty": 405, "date": "2025-10-02"}, {"lot_no": "LT-05088", "design": "483-01", "issue_qty": 544, "pending_qty": 0, "received_qty": 544, "date": "2025-10-02"}, {"lot_no": "LT-05043", "design": "444-04", "issue_qty": 498, "pending_qty": 0, "received_qty": 498, "date": "2025-10-02"}, {"lot_no": "LT-05222", "design": "444-05", "issue_qty": 275, "pending_qty": 0, "received_qty": 275, "date": "2025-10-01"}, {"lot_no": "LT-05220", "design": "444-05", "issue_qty": 540, "pending_qty": 0, "received_qty": 540, "date": "2025-10-01"}, {"lot_no": "LT-05262", "design": "444-05", "issue_qty": 340, "pending_qty": 0, "received_qty": 340, "date": "2025-10-01"}, {"lot_no": "LT-05058", "design": "444-05", "issue_qty": 438, "pending_qty": 0, "received_qty": 438, "date": "2025-10-01"}, {"lot_no": "LT-05152", "design": "444-01", "issue_qty": 196, "pending_qty": 0, "received_qty": 196, "date": "2025-09-25"}, {"lot_no": "LT-05125", "design": "444-06", "issue_qty": 465, "pending_qty": 0, "received_qty": 465, "date": "2025-09-25"}, {"lot_no": "LT-05060", "design": "444-02", "issue_qty": 295, "pending_qty": 0, "received_qty": 295, "date": "2025-09-24"}, {"lot_no": "LT-05232", "design": "444-06", "issue_qty": 465, "pending_qty": 0, "received_qty": 465, "date": "2025-09-24"}, {"lot_no": "LT-05231", "design": "444-05", "issue_qty": 380, "pending_qty": 0, "received_qty": 380, "date": "2025-09-23"}, {"lot_no": "LT-05230", "design": "444-05", "issue_qty": 480, "pending_qty": 0, "received_qty": 480, "date": "2025-09-23"}, {"lot_no": "LT-05042", "design": "444-04", "issue_qty": 460, "pending_qty": 0, "received_qty": 460, "date": "2025-09-23"}]},
+    {name:"ASLAM ISMAIL ANSARI",batches:30,avgDays:9,invoice:"\u20b960",debit:0.9,alter:1.4,cap:2600,city:"Surat",issue_qty:31617,pending_qty:0,received_qty:31617,designs:["K-5501", "K-5504", "K-5701", "K-5702", "K-5703", "K-5704", "K-5802", "K-5803", "K-6001", "K-6003", "K-6004", "K-6005", "K-6501", "K-6502", "K-6503", "K-6504", "K-6601", "K-6602", "K-6603", "K-6604"],lots:[{"lot_no": "LT-04622", "design": "K-6004", "issue_qty": 270, "pending_qty": 0, "received_qty": 270, "date": "2025-10-02"}, {"lot_no": "LT-04623", "design": "K-6005", "issue_qty": 243, "pending_qty": 0, "received_qty": 243, "date": "2025-10-02"}, {"lot_no": "LT-05030", "design": "K-6001", "issue_qty": 1116, "pending_qty": 0, "received_qty": 1116, "date": "2025-10-02"}, {"lot_no": "LT-05024", "design": "K-6003", "issue_qty": 2037, "pending_qty": 0, "received_qty": 2037, "date": "2025-10-01"}, {"lot_no": "LT-05012", "design": "K-5504", "issue_qty": 1404, "pending_qty": 0, "received_qty": 1404, "date": "2025-10-01"}, {"lot_no": "LT-05289", "design": "K-5803", "issue_qty": 1944, "pending_qty": 0, "received_qty": 1944, "date": "2025-10-01"}, {"lot_no": "LT-05009", "design": "K-5501", "issue_qty": 1980, "pending_qty": 0, "received_qty": 1980, "date": "2025-09-30"}, {"lot_no": "LT-04875", "design": "K-5701", "issue_qty": 1600, "pending_qty": 0, "received_qty": 1600, "date": "2025-09-28"}, {"lot_no": "LT-04638", "design": "K-5702", "issue_qty": 348, "pending_qty": 0, "received_qty": 348, "date": "2025-09-28"}, {"lot_no": "LT-04876", "design": "K-5702", "issue_qty": 1572, "pending_qty": 0, "received_qty": 1572, "date": "2025-09-28"}, {"lot_no": "LT-04877", "design": "K-5703", "issue_qty": 1610, "pending_qty": 0, "received_qty": 1610, "date": "2025-09-28"}, {"lot_no": "LT-05272", "design": "K-5704", "issue_qty": 816, "pending_qty": 0, "received_qty": 816, "date": "2025-09-28"}, {"lot_no": "LT-04878", "design": "K-5704", "issue_qty": 1752, "pending_qty": 0, "received_qty": 1752, "date": "2025-09-28"}, {"lot_no": "LT-05171", "design": "K-5803", "issue_qty": 936, "pending_qty": 0, "received_qty": 936, "date": "2025-09-28"}, {"lot_no": "LT-05170", "design": "K-5802", "issue_qty": 1311, "pending_qty": 0, "received_qty": 1311, "date": "2025-09-28"}, {"lot_no": "LT-04857", "design": "K-6601", "issue_qty": 948, "pending_qty": 0, "received_qty": 948, "date": "2025-09-25"}, {"lot_no": "LT-04856", "design": "K-6601", "issue_qty": 372, "pending_qty": 0, "received_qty": 372, "date": "2025-09-25"}, {"lot_no": "LT-04806", "design": "K-6601", "issue_qty": 1552, "pending_qty": 0, "received_qty": 1552, "date": "2025-09-25"}, {"lot_no": "LT-04807", "design": "K-6602", "issue_qty": 536, "pending_qty": 0, "received_qty": 536, "date": "2025-09-25"}, {"lot_no": "LT-04858", "design": "K-6602", "issue_qty": 1472, "pending_qty": 0, "received_qty": 1472, "date": "2025-09-25"}]},
+    {name:"Shree Apparels",batches:23,avgDays:9,invoice:"\u20b979",debit:1.1,alter:1.6,cap:2700,city:"Surat",issue_qty:32902,pending_qty:373,received_qty:32529,designs:["417-03", "417-04", "417-05", "417-06", "417-07"],lots:[{"lot_no": "LT-05591", "design": "417-03", "issue_qty": 2640, "pending_qty": 0, "received_qty": 2640, "date": "2025-12-05"}, {"lot_no": "LT-05583", "design": "417-03", "issue_qty": 2610, "pending_qty": 0, "received_qty": 2610, "date": "2025-11-23"}, {"lot_no": "LT-05578", "design": "417-03", "issue_qty": 2445, "pending_qty": 0, "received_qty": 2445, "date": "2025-11-09"}, {"lot_no": "LT-05651", "design": "417-06", "issue_qty": 265, "pending_qty": 265, "received_qty": 0, "date": "2025-11-09"}, {"lot_no": "LT-05635", "design": "417-06", "issue_qty": 2670, "pending_qty": 0, "received_qty": 2670, "date": "2025-11-04"}, {"lot_no": "LT-05381", "design": "417-03", "issue_qty": 2724, "pending_qty": 0, "received_qty": 2724, "date": "2025-10-15"}, {"lot_no": "LT-05380", "design": "417-03", "issue_qty": 2844, "pending_qty": 0, "received_qty": 2844, "date": "2025-10-15"}, {"lot_no": "LT-05187", "design": "417-05", "issue_qty": 1350, "pending_qty": 0, "received_qty": 1350, "date": "2025-10-13"}, {"lot_no": "LT-05318", "design": "417-04", "issue_qty": 1740, "pending_qty": 0, "received_qty": 1740, "date": "2025-10-08"}, {"lot_no": "LT-05193", "design": "417-05", "issue_qty": 1539, "pending_qty": 0, "received_qty": 1539, "date": "2025-10-06"}, {"lot_no": "LT-05189", "design": "417-05", "issue_qty": 1065, "pending_qty": 0, "received_qty": 1065, "date": "2025-10-06"}, {"lot_no": "LT-05149", "design": "417-04", "issue_qty": 1503, "pending_qty": 0, "received_qty": 1503, "date": "2025-09-25"}, {"lot_no": "LT-05147", "design": "417-04", "issue_qty": 648, "pending_qty": 0, "received_qty": 648, "date": "2025-09-24"}, {"lot_no": "LT-05141", "design": "417-04", "issue_qty": 1380, "pending_qty": 0, "received_qty": 1380, "date": "2025-09-23"}, {"lot_no": "LT-05157", "design": "417-03", "issue_qty": 388, "pending_qty": 0, "received_qty": 388, "date": "2025-09-23"}, {"lot_no": "LT-05146", "design": "417-04", "issue_qty": 1575, "pending_qty": 0, "received_qty": 1575, "date": "2025-09-23"}, {"lot_no": "LT-05114", "design": "417-03", "issue_qty": 490, "pending_qty": -2, "received_qty": 492, "date": "2025-09-19"}, {"lot_no": "LT-04726", "design": "417-05", "issue_qty": 175, "pending_qty": 0, "received_qty": 175, "date": "2025-09-19"}, {"lot_no": "LT-04948", "design": "417-04", "issue_qty": 913, "pending_qty": -1, "received_qty": 914, "date": "2025-09-16"}, {"lot_no": "LT-05001", "design": "417-04", "issue_qty": 1185, "pending_qty": 0, "received_qty": 1185, "date": "2025-09-15"}]},
+    {name:"WONDERFUL CREATION",batches:19,avgDays:8,invoice:"\u20b9115",debit:1.2,alter:1.8,cap:800,city:"Surat",issue_qty:9067,pending_qty:99,received_qty:8968,designs:["417-01", "417-03", "417-04", "417-05", "490-02", "490-03", "490-04", "493-01", "493-02", "493-03"],lots:[{"lot_no": "LT-05868", "design": "493-02", "issue_qty": 26, "pending_qty": 0, "received_qty": 26, "date": "2025-10-28"}, {"lot_no": "LT-04414", "design": "493-01", "issue_qty": 138, "pending_qty": 0, "received_qty": 138, "date": "2025-10-25"}, {"lot_no": "LT-04415", "design": "493-02", "issue_qty": 135, "pending_qty": 0, "received_qty": 135, "date": "2025-10-25"}, {"lot_no": "LT-04416", "design": "493-03", "issue_qty": 184, "pending_qty": 0, "received_qty": 184, "date": "2025-10-25"}, {"lot_no": "LT-05363", "design": "490-03", "issue_qty": 936, "pending_qty": 0, "received_qty": 936, "date": "2025-10-18"}, {"lot_no": "LT-05570", "design": "417-01", "issue_qty": 448, "pending_qty": 0, "received_qty": 448, "date": "2025-10-18"}, {"lot_no": "LT-05364", "design": "490-04", "issue_qty": 990, "pending_qty": 0, "received_qty": 990, "date": "2025-10-17"}, {"lot_no": "LT-05573", "design": "417-03", "issue_qty": 945, "pending_qty": 0, "received_qty": 945, "date": "2025-10-17"}, {"lot_no": "LT-05362", "design": "490-02", "issue_qty": 1044, "pending_qty": 0, "received_qty": 1044, "date": "2025-10-17"}, {"lot_no": "LT-05150", "design": "417-05", "issue_qty": 340, "pending_qty": 0, "received_qty": 340, "date": "2025-10-14"}, {"lot_no": "LT-05382", "design": "417-04", "issue_qty": 792, "pending_qty": 0, "received_qty": 792, "date": "2025-10-09"}, {"lot_no": "LT-05322", "design": "417-04", "issue_qty": 100, "pending_qty": 100, "received_qty": 0, "date": "2025-10-09"}, {"lot_no": "LT-05256", "design": "417-05", "issue_qty": 512, "pending_qty": 0, "received_qty": 512, "date": "2025-10-07"}, {"lot_no": "LT-05148", "design": "417-04", "issue_qty": 510, "pending_qty": 0, "received_qty": 510, "date": "2025-10-03"}, {"lot_no": "LT-05321", "design": "417-04", "issue_qty": 360, "pending_qty": 0, "received_qty": 360, "date": "2025-10-02"}, {"lot_no": "LT-05143", "design": "417-04", "issue_qty": 630, "pending_qty": -1, "received_qty": 631, "date": "2025-09-26"}, {"lot_no": "LT-04949", "design": "417-04", "issue_qty": 452, "pending_qty": 0, "received_qty": 452, "date": "2025-09-23"}, {"lot_no": "LT-04956", "design": "417-04", "issue_qty": 355, "pending_qty": 0, "received_qty": 355, "date": "2025-09-23"}, {"lot_no": "LT-04718", "design": "417-04", "issue_qty": 170, "pending_qty": 0, "received_qty": 170, "date": "2025-09-20"}]},
+    {name:"SAMINA KHATUN",batches:21,avgDays:8,invoice:"\u20b9130",debit:1.5,alter:2.0,cap:600,city:"Surat",issue_qty:6939,pending_qty:231,received_qty:6708,designs:["009-01", "009-02", "009-03", "010-01", "010-02", "010-03", "010-04", "444-04", "444-05", "444-06", "444-07", "444-08", "483-01", "483-02", "483-03", "483-04"],lots:[{"lot_no": "LT-05756", "design": "444-06", "issue_qty": 890, "pending_qty": 0, "received_qty": 890, "date": "2025-11-09"}, {"lot_no": "LT-05709", "design": "444-04", "issue_qty": 930, "pending_qty": 0, "received_qty": 930, "date": "2025-11-08"}, {"lot_no": "LT-05527", "design": "483-02", "issue_qty": 31, "pending_qty": 31, "received_qty": 0, "date": "2025-11-04"}, {"lot_no": "LT-05529", "design": "483-03", "issue_qty": 39, "pending_qty": 39, "received_qty": 0, "date": "2025-11-04"}, {"lot_no": "LT-05398", "design": "444-08", "issue_qty": 17, "pending_qty": 17, "received_qty": 0, "date": "2025-11-03"}, {"lot_no": "LT-05284", "design": "010-01", "issue_qty": 138, "pending_qty": 0, "received_qty": 138, "date": "2025-10-31"}, {"lot_no": "LT-05530", "design": "483-04", "issue_qty": 620, "pending_qty": 0, "received_qty": 620, "date": "2025-10-31"}, {"lot_no": "LT-05526", "design": "483-01", "issue_qty": 53, "pending_qty": 53, "received_qty": 0, "date": "2025-10-31"}, {"lot_no": "LT-05277", "design": "009-02", "issue_qty": 3, "pending_qty": 3, "received_qty": 0, "date": "2025-10-31"}, {"lot_no": "LT-05285", "design": "010-02", "issue_qty": 15, "pending_qty": 15, "received_qty": 0, "date": "2025-10-31"}, {"lot_no": "LT-05278", "design": "009-03", "issue_qty": 25, "pending_qty": 25, "received_qty": 0, "date": "2025-10-31"}, {"lot_no": "LT-05286", "design": "010-03", "issue_qty": 1, "pending_qty": 1, "received_qty": 0, "date": "2025-10-31"}, {"lot_no": "LT-05287", "design": "010-04", "issue_qty": 2, "pending_qty": 2, "received_qty": 0, "date": "2025-10-31"}, {"lot_no": "LT-05276", "design": "009-01", "issue_qty": 6, "pending_qty": 6, "received_qty": 0, "date": "2025-10-30"}, {"lot_no": "LT-05508", "design": "444-06", "issue_qty": 470, "pending_qty": 0, "received_qty": 470, "date": "2025-10-17"}, {"lot_no": "LT-05397", "design": "444-07", "issue_qty": 895, "pending_qty": 0, "received_qty": 895, "date": "2025-10-17"}, {"lot_no": "LT-05498", "design": "444-04", "issue_qty": 460, "pending_qty": 0, "received_qty": 460, "date": "2025-10-17"}, {"lot_no": "LT-05211", "design": "444-04", "issue_qty": 525, "pending_qty": 0, "received_qty": 525, "date": "2025-10-17"}, {"lot_no": "LT-05494", "design": "444-04", "issue_qty": 895, "pending_qty": 0, "received_qty": 895, "date": "2025-10-17"}, {"lot_no": "LT-05389", "design": "444-06", "issue_qty": 885, "pending_qty": 0, "received_qty": 885, "date": "2025-10-12"}]},
+  ],
+  cut_pack: [
+    {name:"JARINA BEGAM",batches:33,avgDays:19,invoice:"\u20b9100",debit:2.1,alter:1.9,cap:3200,city:"Surat",issue_qty:38934,pending_qty:8864,received_qty:30070,designs:["005-01", "010-01", "010-02", "010-03", "010-04", "013-01", "013-02", "013-03", "417-03", "417-04", "417-06", "483-01", "483-02", "483-03", "483-04", "484-02", "484-04"],lots:[{"lot_no": "LT-06346", "design": "010-01", "issue_qty": 1251, "pending_qty": 1251, "received_qty": 0, "date": "2026-02-28"}, {"lot_no": "LT-06631", "design": "005-01", "issue_qty": 1215, "pending_qty": 813, "received_qty": 402, "date": "2026-02-24"}, {"lot_no": "LT-06742", "design": "005-01", "issue_qty": 594, "pending_qty": 397, "received_qty": 197, "date": "2026-02-24"}, {"lot_no": "LT-06633", "design": "005-01", "issue_qty": 1152, "pending_qty": 777, "received_qty": 375, "date": "2026-02-24"}, {"lot_no": "LT-06350", "design": "010-02", "issue_qty": 832, "pending_qty": 832, "received_qty": 0, "date": "2026-02-20"}, {"lot_no": "LT-06348", "design": "010-01", "issue_qty": 1175, "pending_qty": 1088, "received_qty": 87, "date": "2026-02-09"}, {"lot_no": "LT-06352", "design": "010-03", "issue_qty": 579, "pending_qty": 534, "received_qty": 45, "date": "2026-02-09"}, {"lot_no": "LT-06356", "design": "010-04", "issue_qty": 1078, "pending_qty": 927, "received_qty": 151, "date": "2026-02-09"}, {"lot_no": "LT-06353", "design": "010-03", "issue_qty": 456, "pending_qty": 456, "received_qty": 0, "date": "2026-02-09"}, {"lot_no": "LT-06071", "design": "484-04", "issue_qty": 965, "pending_qty": 965, "received_qty": 0, "date": "2026-02-03"}, {"lot_no": "LT-06012", "design": "484-02", "issue_qty": 824, "pending_qty": 824, "received_qty": 0, "date": "2026-02-03"}, {"lot_no": "LT-06085", "design": "483-03", "issue_qty": 765, "pending_qty": 0, "received_qty": 765, "date": "2026-01-25"}, {"lot_no": "LT-06244", "design": "010-01", "issue_qty": 738, "pending_qty": 0, "received_qty": 738, "date": "2026-01-24"}, {"lot_no": "LT-06291", "design": "483-02", "issue_qty": 690, "pending_qty": 0, "received_qty": 690, "date": "2026-01-24"}, {"lot_no": "LT-05665", "design": "417-04", "issue_qty": 435, "pending_qty": 0, "received_qty": 435, "date": "2026-01-21"}, {"lot_no": "LT-05668", "design": "417-04", "issue_qty": 825, "pending_qty": 0, "received_qty": 825, "date": "2026-01-21"}, {"lot_no": "LT-06245", "design": "010-03", "issue_qty": 1566, "pending_qty": 0, "received_qty": 1566, "date": "2026-01-15"}, {"lot_no": "LT-06135", "design": "010-04", "issue_qty": 1386, "pending_qty": 0, "received_qty": 1386, "date": "2026-01-15"}, {"lot_no": "LT-05528", "design": "483-02", "issue_qty": 1413, "pending_qty": 0, "received_qty": 1413, "date": "2026-01-07"}, {"lot_no": "LT-06017", "design": "484-04", "issue_qty": 1361, "pending_qty": 0, "received_qty": 1361, "date": "2026-01-06"}]},
+    {name:"H R FASHION",batches:63,avgDays:26,invoice:"\u20b9101",debit:4.3,alter:3.6,cap:4800,city:"Surat",issue_qty:57752,pending_qty:28158,received_qty:29594,designs:["009-02", "009-04", "417-04", "444-01", "444-03", "444-04", "444-05", "444-06", "444-07", "444-08", "483-01", "483-02", "483-03", "483-04", "498-01", "498-02"],lots:[{"lot_no": "LT-06815", "design": "444-04", "issue_qty": 1326, "pending_qty": 1326, "received_qty": 0, "date": "2026-04-05"}, {"lot_no": "LT-07312", "design": "444-06", "issue_qty": 1290, "pending_qty": 1290, "received_qty": 0, "date": "2026-04-05"}, {"lot_no": "LT-07036", "design": "444-04", "issue_qty": 1332, "pending_qty": 1332, "received_qty": 0, "date": "2026-03-30"}, {"lot_no": "LT-07316", "design": "444-07", "issue_qty": 1380, "pending_qty": 1380, "received_qty": 0, "date": "2026-03-30"}, {"lot_no": "LT-07322", "design": "444-08", "issue_qty": 1290, "pending_qty": 1290, "received_qty": 0, "date": "2026-03-30"}, {"lot_no": "LT-06817", "design": "444-07", "issue_qty": 1422, "pending_qty": 1422, "received_qty": 0, "date": "2026-03-15"}, {"lot_no": "LT-07040", "design": "444-08", "issue_qty": 1410, "pending_qty": 1410, "received_qty": 0, "date": "2026-03-15"}, {"lot_no": "LT-06816", "design": "444-06", "issue_qty": 1365, "pending_qty": 1275, "received_qty": 90, "date": "2026-03-15"}, {"lot_no": "LT-06695", "design": "444-08", "issue_qty": 1584, "pending_qty": 4, "received_qty": 1580, "date": "2026-03-15"}, {"lot_no": "LT-06670", "design": "009-02", "issue_qty": 1158, "pending_qty": 1158, "received_qty": 0, "date": "2026-03-10"}, {"lot_no": "LT-06541", "design": "009-02", "issue_qty": 1116, "pending_qty": 1116, "received_qty": 0, "date": "2026-03-10"}, {"lot_no": "LT-06574", "design": "483-04", "issue_qty": 279, "pending_qty": 279, "received_qty": 0, "date": "2026-03-10"}, {"lot_no": "LT-06697", "design": "444-08", "issue_qty": 879, "pending_qty": 752, "received_qty": 127, "date": "2026-03-06"}, {"lot_no": "LT-06696", "design": "444-08", "issue_qty": 584, "pending_qty": 570, "received_qty": 14, "date": "2026-03-06"}, {"lot_no": "LT-06824", "design": "444-05", "issue_qty": 1191, "pending_qty": 17, "received_qty": 1174, "date": "2026-03-05"}, {"lot_no": "LT-06818", "design": "444-03", "issue_qty": 1012, "pending_qty": 13, "received_qty": 999, "date": "2026-03-05"}, {"lot_no": "LT-06691", "design": "444-06", "issue_qty": 1310, "pending_qty": 969, "received_qty": 341, "date": "2026-03-01"}, {"lot_no": "LT-06693", "design": "444-07", "issue_qty": 1476, "pending_qty": 0, "received_qty": 1476, "date": "2026-03-01"}, {"lot_no": "LT-06694", "design": "444-07", "issue_qty": 726, "pending_qty": 66, "received_qty": 660, "date": "2026-03-01"}, {"lot_no": "LT-06562", "design": "444-04", "issue_qty": 1308, "pending_qty": 1267, "received_qty": 41, "date": "2026-02-24"}]},
+    {name:"S S SAZIYA CREATION",batches:17,avgDays:19,invoice:"\u20b991",debit:2.7,alter:2.4,cap:700,city:"Surat",issue_qty:8252,pending_qty:2268,received_qty:5984,designs:["026-01", "026-02", "026-03", "026-04", "028-01", "028-02", "417-04", "417-06", "498-01", "K-8101", "K-8102", "K-8103", "K-9101", "K-9102", "K-9103"],lots:[{"lot_no": "LT-06307", "design": "026-01", "issue_qty": 116, "pending_qty": 1, "received_qty": 115, "date": "2026-02-13"}, {"lot_no": "LT-06230", "design": "026-02", "issue_qty": 156, "pending_qty": 1, "received_qty": 155, "date": "2026-02-13"}, {"lot_no": "LT-06231", "design": "026-03", "issue_qty": 190, "pending_qty": 2, "received_qty": 188, "date": "2026-02-13"}, {"lot_no": "LT-06305", "design": "026-04", "issue_qty": 222, "pending_qty": 2, "received_qty": 220, "date": "2026-02-13"}, {"lot_no": "LT-06284", "design": "498-01", "issue_qty": 1259, "pending_qty": 4, "received_qty": 1255, "date": "2026-02-13"}, {"lot_no": "LT-06267", "design": "028-01", "issue_qty": 729, "pending_qty": 24, "received_qty": 705, "date": "2026-02-11"}, {"lot_no": "LT-06268", "design": "028-02", "issue_qty": 744, "pending_qty": 8, "received_qty": 736, "date": "2026-02-11"}, {"lot_no": "LT-05534", "design": "K-9102", "issue_qty": 312, "pending_qty": 232, "received_qty": 80, "date": "2026-01-22"}, {"lot_no": "LT-05533", "design": "K-9101", "issue_qty": 341, "pending_qty": 240, "received_qty": 101, "date": "2026-01-20"}, {"lot_no": "LT-06252", "design": "K-8101", "issue_qty": 379, "pending_qty": 348, "received_qty": 31, "date": "2026-01-19"}, {"lot_no": "LT-06199", "design": "K-8102", "issue_qty": 659, "pending_qty": 607, "received_qty": 52, "date": "2026-01-19"}, {"lot_no": "LT-06253", "design": "K-8103", "issue_qty": 525, "pending_qty": 420, "received_qty": 105, "date": "2026-01-19"}, {"lot_no": "LT-05535", "design": "K-9103", "issue_qty": 355, "pending_qty": 235, "received_qty": 120, "date": "2026-01-16"}, {"lot_no": "LT-05313", "design": "417-06", "issue_qty": 1128, "pending_qty": 0, "received_qty": 1128, "date": "2025-10-03"}, {"lot_no": "LT-05320", "design": "417-04", "issue_qty": 144, "pending_qty": 144, "received_qty": 0, "date": "2025-10-03"}, {"lot_no": "LT-05206", "design": "417-06", "issue_qty": 513, "pending_qty": 0, "received_qty": 513, "date": "2025-09-29"}, {"lot_no": "LT-05204", "design": "417-06", "issue_qty": 480, "pending_qty": 0, "received_qty": 480, "date": "2025-09-26"}]},
+    {name:"CLASSY CREATION",batches:55,avgDays:26,invoice:"\u20b983",debit:4.5,alter:4.0,cap:1900,city:"Surat",issue_qty:22551,pending_qty:11590,received_qty:10961,designs:["319-03", "320-03", "324-01", "335-01", "335-03", "335-04", "336-04", "340-01", "342-01", "346-01", "346-02", "346-03", "346-04", "347-01", "347-02", "347-03", "347-04", "358-01", "358-02", "358-03", "363-01", "363-02", "363-03", "367-01", "367-02", "367-03", "367-04", "371-01", "371-02", "371-03", "371-04", "372-01", "372-02", "372-03", "378-01", "378-02", "444-05", "444-06", "498-01", "498-02", "498-03", "498-04", "498-06", "549-01", "549-02", "549-03"],lots:[{"lot_no": "LT-06141", "design": "342-01", "issue_qty": 535, "pending_qty": 0, "received_qty": 535, "date": "2026-03-15"}, {"lot_no": "LT-06202", "design": "363-03", "issue_qty": 7, "pending_qty": 7, "received_qty": 0, "date": "2026-03-15"}, {"lot_no": "LT-06443", "design": "340-01", "issue_qty": 118, "pending_qty": 24, "received_qty": 94, "date": "2026-03-15"}, {"lot_no": "LT-06277", "design": "367-02", "issue_qty": 1, "pending_qty": 1, "received_qty": 0, "date": "2026-03-15"}, {"lot_no": "LT-06551", "design": "336-04", "issue_qty": 300, "pending_qty": 300, "received_qty": 0, "date": "2026-03-14"}, {"lot_no": "LT-06792", "design": "320-03", "issue_qty": 556, "pending_qty": 556, "received_qty": 0, "date": "2026-03-14"}, {"lot_no": "LT-06795", "design": "335-03", "issue_qty": 520, "pending_qty": 520, "received_qty": 0, "date": "2026-03-14"}, {"lot_no": "LT-06494", "design": "371-02", "issue_qty": 250, "pending_qty": 250, "received_qty": 0, "date": "2026-03-13"}, {"lot_no": "LT-06496", "design": "371-04", "issue_qty": 250, "pending_qty": 250, "received_qty": 0, "date": "2026-03-13"}, {"lot_no": "LT-06493", "design": "371-01", "issue_qty": 250, "pending_qty": 250, "received_qty": 0, "date": "2026-03-13"}, {"lot_no": "LT-06495", "design": "371-03", "issue_qty": 250, "pending_qty": 250, "received_qty": 0, "date": "2026-03-13"}, {"lot_no": "LT-07123", "design": "347-03", "issue_qty": 485, "pending_qty": 485, "received_qty": 0, "date": "2026-03-12"}, {"lot_no": "LT-07124", "design": "347-04", "issue_qty": 555, "pending_qty": 555, "received_qty": 0, "date": "2026-03-12"}, {"lot_no": "LT-06609", "design": "372-01", "issue_qty": 295, "pending_qty": 295, "received_qty": 0, "date": "2026-03-12"}, {"lot_no": "LT-06611", "design": "372-03", "issue_qty": 290, "pending_qty": 290, "received_qty": 0, "date": "2026-03-12"}, {"lot_no": "LT-07118", "design": "324-01", "issue_qty": 402, "pending_qty": 402, "received_qty": 0, "date": "2026-03-12"}, {"lot_no": "LT-06610", "design": "372-02", "issue_qty": 290, "pending_qty": 290, "received_qty": 0, "date": "2026-03-12"}, {"lot_no": "LT-07278", "design": "324-01", "issue_qty": 444, "pending_qty": 444, "received_qty": 0, "date": "2026-03-12"}, {"lot_no": "LT-06728", "design": "498-04", "issue_qty": 1008, "pending_qty": 1008, "received_qty": 0, "date": "2026-03-11"}, {"lot_no": "LT-06406", "design": "498-04", "issue_qty": 1314, "pending_qty": 1314, "received_qty": 0, "date": "2026-03-11"}]},
+    {name:"R R FASHION",batches:101,avgDays:35,invoice:"\u20b992",debit:4.5,alter:5.0,cap:7400,city:"Surat",issue_qty:88603,pending_qty:73414,received_qty:15189,designs:["016-01", "016-02", "016-03", "016-04", "019-01", "019-02", "019-03", "019-04", "027-01", "027-02", "027-03", "029-01", "029-02", "031-01", "031-02", "033-01", "033-02", "033-03", "033-04", "034-01", "034-02", "037-01", "037-02", "037-03", "356-01", "356-02", "356-03", "356-04", "366-01", "366-02", "366-04", "474-02", "474-03", "474-05", "474-06", "474-07", "490-01", "490-02", "490-03", "490-04", "498-01", "498-02", "498-04", "498-05", "542-01", "542-02", "542-03", "K-7002"],lots:[{"lot_no": "LT-06878", "design": "019-01", "issue_qty": 738, "pending_qty": 738, "received_qty": 0, "date": "2026-04-06"}, {"lot_no": "LT-06853", "design": "490-03", "issue_qty": 738, "pending_qty": 738, "received_qty": 0, "date": "2026-04-06"}, {"lot_no": "LT-06647", "design": "490-01", "issue_qty": 1062, "pending_qty": 1062, "received_qty": 0, "date": "2026-04-05"}, {"lot_no": "LT-06649", "design": "490-01", "issue_qty": 972, "pending_qty": 972, "received_qty": 0, "date": "2026-04-05"}, {"lot_no": "LT-06855", "design": "490-03", "issue_qty": 1026, "pending_qty": 1026, "received_qty": 0, "date": "2026-04-05"}, {"lot_no": "LT-06856", "design": "490-03", "issue_qty": 972, "pending_qty": 972, "received_qty": 0, "date": "2026-04-05"}, {"lot_no": "LT-07080", "design": "490-04", "issue_qty": 1296, "pending_qty": 1296, "received_qty": 0, "date": "2026-04-05"}, {"lot_no": "LT-06651", "design": "490-02", "issue_qty": 1062, "pending_qty": 1062, "received_qty": 0, "date": "2026-04-05"}, {"lot_no": "LT-06654", "design": "490-03", "issue_qty": 972, "pending_qty": 972, "received_qty": 0, "date": "2026-04-05"}, {"lot_no": "LT-06880", "design": "019-03", "issue_qty": 738, "pending_qty": 738, "received_qty": 0, "date": "2026-04-05"}, {"lot_no": "LT-06837", "design": "474-02", "issue_qty": 936, "pending_qty": 936, "received_qty": 0, "date": "2026-04-05"}, {"lot_no": "LT-06646", "design": "490-01", "issue_qty": 1080, "pending_qty": 1080, "received_qty": 0, "date": "2026-04-05"}, {"lot_no": "LT-06531", "design": "490-03", "issue_qty": 954, "pending_qty": 954, "received_qty": 0, "date": "2026-04-05"}, {"lot_no": "LT-06869", "design": "033-01", "issue_qty": 756, "pending_qty": 676, "received_qty": 80, "date": "2026-03-10"}, {"lot_no": "LT-06418", "design": "033-02", "issue_qty": 774, "pending_qty": 714, "received_qty": 60, "date": "2026-03-10"}, {"lot_no": "LT-06420", "design": "033-04", "issue_qty": 720, "pending_qty": 511, "received_qty": 209, "date": "2026-03-10"}, {"lot_no": "LT-06871", "design": "033-03", "issue_qty": 594, "pending_qty": 497, "received_qty": 97, "date": "2026-03-09"}, {"lot_no": "LT-06460", "design": "034-01", "issue_qty": 893, "pending_qty": 602, "received_qty": 291, "date": "2026-03-06"}, {"lot_no": "LT-06461", "design": "034-02", "issue_qty": 771, "pending_qty": 512, "received_qty": 259, "date": "2026-03-06"}, {"lot_no": "LT-06469", "design": "037-03", "issue_qty": 671, "pending_qty": 46, "received_qty": 625, "date": "2026-03-06"}]},
+    {name:"ARIF",batches:42,avgDays:24,invoice:"\u20b998",debit:4.5,alter:4.1,cap:3900,city:"Surat",issue_qty:46974,pending_qty:22378,received_qty:24596,designs:["021-01", "021-02", "021-03", "021-04", "036-01", "036-02", "036-03", "036-04", "417-04", "444-03", "444-04", "444-05", "444-06", "444-07", "484-01", "498-01", "498-03", "498-04", "498-07"],lots:[{"lot_no": "LT-07035", "design": "444-04", "issue_qty": 1323, "pending_qty": 1323, "received_qty": 0, "date": "2026-04-03"}, {"lot_no": "LT-07037", "design": "444-04", "issue_qty": 1494, "pending_qty": 1494, "received_qty": 0, "date": "2026-04-03"}, {"lot_no": "LT-07038", "design": "444-05", "issue_qty": 1314, "pending_qty": 1314, "received_qty": 0, "date": "2026-04-03"}, {"lot_no": "LT-06819", "design": "444-03", "issue_qty": 945, "pending_qty": 945, "received_qty": 0, "date": "2026-03-28"}, {"lot_no": "LT-06814", "design": "444-04", "issue_qty": 1269, "pending_qty": 1269, "received_qty": 0, "date": "2026-03-28"}, {"lot_no": "LT-06813", "design": "444-04", "issue_qty": 1278, "pending_qty": 1278, "received_qty": 0, "date": "2026-03-28"}, {"lot_no": "LT-06811", "design": "444-04", "issue_qty": 1476, "pending_qty": 1476, "received_qty": 0, "date": "2026-03-21"}, {"lot_no": "LT-07039", "design": "444-06", "issue_qty": 1350, "pending_qty": 1350, "received_qty": 0, "date": "2026-03-21"}, {"lot_no": "LT-07127", "design": "444-06", "issue_qty": 1836, "pending_qty": 1836, "received_qty": 0, "date": "2026-03-21"}, {"lot_no": "LT-06812", "design": "444-04", "issue_qty": 1104, "pending_qty": 1104, "received_qty": 0, "date": "2026-03-20"}, {"lot_no": "LT-06731", "design": "498-01", "issue_qty": 1632, "pending_qty": 1088, "received_qty": 544, "date": "2026-03-10"}, {"lot_no": "LT-06732", "design": "498-01", "issue_qty": 1116, "pending_qty": 792, "received_qty": 324, "date": "2026-03-10"}, {"lot_no": "LT-06727", "design": "498-03", "issue_qty": 1620, "pending_qty": 1580, "received_qty": 40, "date": "2026-03-09"}, {"lot_no": "LT-06471", "design": "036-01", "issue_qty": 684, "pending_qty": 558, "received_qty": 126, "date": "2026-03-06"}, {"lot_no": "LT-06472", "design": "036-02", "issue_qty": 769, "pending_qty": 555, "received_qty": 214, "date": "2026-03-06"}, {"lot_no": "LT-06474", "design": "036-04", "issue_qty": 1080, "pending_qty": 848, "received_qty": 232, "date": "2026-03-06"}, {"lot_no": "LT-06473", "design": "036-03", "issue_qty": 683, "pending_qty": 546, "received_qty": 137, "date": "2026-03-05"}, {"lot_no": "LT-06900", "design": "036-03", "issue_qty": 243, "pending_qty": 174, "received_qty": 69, "date": "2026-03-05"}, {"lot_no": "LT-06409", "design": "498-04", "issue_qty": 1651, "pending_qty": 1239, "received_qty": 412, "date": "2026-03-05"}, {"lot_no": "LT-06477", "design": "498-07", "issue_qty": 348, "pending_qty": 348, "received_qty": 0, "date": "2026-03-05"}]},
+    {name:"BREEZY IMPORT EXPORT",batches:48,avgDays:26,invoice:"\u20b969",debit:4.5,alter:4.8,cap:2200,city:"Surat",issue_qty:26380,pending_qty:15144,received_qty:11236,designs:["001-01", "001-02", "001-03", "001-04", "005-01", "005-02", "359-01", "359-02", "359-03", "365-01", "365-02", "365-03", "365-04", "467-01", "467-02", "467-03", "467-04", "475-03", "K-5503", "K-5504", "K-6703", "K-6802", "K-7301", "K-7302", "K-7303", "K-7502", "K-7803", "K-7804"],lots:[{"lot_no": "LT-06581", "design": "K-5504", "issue_qty": 464, "pending_qty": 464, "received_qty": 0, "date": "2026-03-09"}, {"lot_no": "LT-06791", "design": "K-5504", "issue_qty": 396, "pending_qty": 396, "received_qty": 0, "date": "2026-03-09"}, {"lot_no": "LT-06483", "design": "K-6703", "issue_qty": 336, "pending_qty": 336, "received_qty": 0, "date": "2026-03-09"}, {"lot_no": "LT-06580", "design": "K-5503", "issue_qty": 360, "pending_qty": 360, "received_qty": 0, "date": "2026-03-09"}, {"lot_no": "LT-06718", "design": "K-5504", "issue_qty": 450, "pending_qty": 450, "received_qty": 0, "date": "2026-03-09"}, {"lot_no": "LT-06976", "design": "K-5504", "issue_qty": 1206, "pending_qty": 1206, "received_qty": 0, "date": "2026-03-09"}, {"lot_no": "LT-06497", "design": "001-03", "issue_qty": 1416, "pending_qty": 1416, "received_qty": 0, "date": "2026-03-09"}, {"lot_no": "LT-06363", "design": "467-03", "issue_qty": 1242, "pending_qty": 1242, "received_qty": 0, "date": "2026-03-07"}, {"lot_no": "LT-06658", "design": "001-01", "issue_qty": 663, "pending_qty": 6, "received_qty": 657, "date": "2026-03-06"}, {"lot_no": "LT-06427", "design": "001-01", "issue_qty": 69, "pending_qty": 6, "received_qty": 63, "date": "2026-03-06"}, {"lot_no": "LT-06591", "design": "001-03", "issue_qty": 540, "pending_qty": 0, "received_qty": 540, "date": "2026-03-06"}, {"lot_no": "LT-06413", "design": "365-01", "issue_qty": 98, "pending_qty": 5, "received_qty": 93, "date": "2026-03-05"}, {"lot_no": "LT-06414", "design": "365-02", "issue_qty": 104, "pending_qty": 14, "received_qty": 90, "date": "2026-03-05"}, {"lot_no": "LT-06223", "design": "365-03", "issue_qty": 96, "pending_qty": 4, "received_qty": 92, "date": "2026-03-05"}, {"lot_no": "LT-06224", "design": "365-04", "issue_qty": 55, "pending_qty": 6, "received_qty": 49, "date": "2026-03-05"}, {"lot_no": "LT-06508", "design": "005-01", "issue_qty": 423, "pending_qty": 1, "received_qty": 422, "date": "2026-03-03"}, {"lot_no": "LT-06513", "design": "005-02", "issue_qty": 746, "pending_qty": 2, "received_qty": 744, "date": "2026-02-25"}, {"lot_no": "LT-06425", "design": "001-01", "issue_qty": 945, "pending_qty": 630, "received_qty": 315, "date": "2026-02-24"}, {"lot_no": "LT-06426", "design": "001-01", "issue_qty": 600, "pending_qty": 600, "received_qty": 0, "date": "2026-02-24"}, {"lot_no": "LT-05544", "design": "467-02", "issue_qty": 442, "pending_qty": 322, "received_qty": 120, "date": "2026-02-18"}]},
+    {name:"S J APPARELS",batches:97,avgDays:35,invoice:"\u20b992",debit:4.5,alter:5.0,cap:6600,city:"Surat",issue_qty:79550,pending_qty:70893,received_qty:8657,designs:["002-01", "002-02", "002-03", "002-04", "002-05", "002-06", "002-07", "005-02", "005-03", "008-01", "008-02", "008-03", "008-04", "011-01", "011-02", "015-01", "015-02", "015-03", "040-01", "040-02", "040-03", "040-04", "490-01", "490-03", "497-01", "497-02", "497-03", "497-04", "498-01", "498-04", "K-5901", "K-8701", "K-8702", "K-8703", "K-8704"],lots:[{"lot_no": "LT-07005", "design": "002-04", "issue_qty": 1503, "pending_qty": 1503, "received_qty": 0, "date": "2026-04-06"}, {"lot_no": "LT-07101", "design": "002-03", "issue_qty": 1080, "pending_qty": 1080, "received_qty": 0, "date": "2026-04-05"}, {"lot_no": "LT-07001", "design": "002-01", "issue_qty": 984, "pending_qty": 984, "received_qty": 0, "date": "2026-04-05"}, {"lot_no": "LT-07100", "design": "002-01", "issue_qty": 1350, "pending_qty": 1350, "received_qty": 0, "date": "2026-04-05"}, {"lot_no": "LT-07099", "design": "002-01", "issue_qty": 738, "pending_qty": 738, "received_qty": 0, "date": "2026-04-04"}, {"lot_no": "LT-07004", "design": "002-03", "issue_qty": 1020, "pending_qty": 1020, "received_qty": 0, "date": "2026-04-04"}, {"lot_no": "LT-07398", "design": "497-04", "issue_qty": 1296, "pending_qty": 1296, "received_qty": 0, "date": "2026-04-03"}, {"lot_no": "LT-06857", "design": "002-01", "issue_qty": 957, "pending_qty": 957, "received_qty": 0, "date": "2026-03-25"}, {"lot_no": "LT-06626", "design": "040-03", "issue_qty": 720, "pending_qty": 720, "received_qty": 0, "date": "2026-03-25"}, {"lot_no": "LT-06627", "design": "040-04", "issue_qty": 900, "pending_qty": 900, "received_qty": 0, "date": "2026-03-25"}, {"lot_no": "LT-06625", "design": "040-02", "issue_qty": 1062, "pending_qty": 1062, "received_qty": 0, "date": "2026-03-25"}, {"lot_no": "LT-06624", "design": "040-01", "issue_qty": 900, "pending_qty": 900, "received_qty": 0, "date": "2026-03-25"}, {"lot_no": "LT-07003", "design": "002-03", "issue_qty": 1368, "pending_qty": 1368, "received_qty": 0, "date": "2026-03-25"}, {"lot_no": "LT-06860", "design": "008-02", "issue_qty": 1782, "pending_qty": 1782, "received_qty": 0, "date": "2026-03-25"}, {"lot_no": "LT-06740", "design": "002-06", "issue_qty": 1125, "pending_qty": 1125, "received_qty": 0, "date": "2026-03-18"}, {"lot_no": "LT-06859", "design": "008-01", "issue_qty": 1383, "pending_qty": 1264, "received_qty": 119, "date": "2026-03-17"}, {"lot_no": "LT-07117", "design": "008-04", "issue_qty": 1116, "pending_qty": 1116, "received_qty": 0, "date": "2026-03-17"}, {"lot_no": "LT-06664", "design": "002-02", "issue_qty": 1098, "pending_qty": 763, "received_qty": 335, "date": "2026-03-13"}, {"lot_no": "LT-06861", "design": "008-03", "issue_qty": 1377, "pending_qty": 1377, "received_qty": 0, "date": "2026-03-13"}, {"lot_no": "LT-06539", "design": "008-04", "issue_qty": 1851, "pending_qty": 1245, "received_qty": 606, "date": "2026-03-13"}]},
+    {name:"PRAMUKH ENTERPRISE",batches:5,avgDays:24,invoice:"\u20b970",debit:4.5,alter:4.9,cap:500,city:"Surat",issue_qty:1293,pending_qty:688,received_qty:605,designs:["348-01", "348-02", "348-03", "348-04", "490-03"],lots:[{"lot_no": "LT-05958", "design": "490-03", "issue_qty": 688, "pending_qty": 688, "received_qty": 0, "date": "2026-01-17"}, {"lot_no": "LT-05436", "design": "348-01", "issue_qty": 195, "pending_qty": 0, "received_qty": 195, "date": "2025-12-23"}, {"lot_no": "LT-05437", "design": "348-02", "issue_qty": 140, "pending_qty": 0, "received_qty": 140, "date": "2025-12-23"}, {"lot_no": "LT-05439", "design": "348-04", "issue_qty": 130, "pending_qty": 0, "received_qty": 130, "date": "2025-12-23"}, {"lot_no": "LT-05438", "design": "348-03", "issue_qty": 140, "pending_qty": 0, "received_qty": 140, "date": "2025-12-23"}]},
+    {name:"MAA KRUPA GARMENT",batches:38,avgDays:31,invoice:"\u20b9105",debit:4.5,alter:5.0,cap:3000,city:"Surat",issue_qty:36387,pending_qty:28252,received_qty:8135,designs:["005-01", "005-02", "005-03", "005-04", "005-07", "360-01", "360-02", "360-03", "362-01", "362-02", "362-03"],lots:[{"lot_no": "LT-07234", "design": "005-02", "issue_qty": 1188, "pending_qty": 1188, "received_qty": 0, "date": "2026-04-03"}, {"lot_no": "LT-07105", "design": "005-04", "issue_qty": 1206, "pending_qty": 1206, "received_qty": 0, "date": "2026-04-03"}, {"lot_no": "LT-07106", "design": "005-04", "issue_qty": 1206, "pending_qty": 1206, "received_qty": 0, "date": "2026-04-03"}, {"lot_no": "LT-06959", "design": "005-02", "issue_qty": 990, "pending_qty": 990, "received_qty": 0, "date": "2026-04-03"}, {"lot_no": "LT-07242", "design": "005-03", "issue_qty": 1188, "pending_qty": 1188, "received_qty": 0, "date": "2026-04-03"}, {"lot_no": "LT-07240", "design": "005-03", "issue_qty": 1026, "pending_qty": 1026, "received_qty": 0, "date": "2026-04-03"}, {"lot_no": "LT-06488", "design": "005-07", "issue_qty": 1152, "pending_qty": 1152, "received_qty": 0, "date": "2026-04-03"}, {"lot_no": "LT-07159", "design": "005-02", "issue_qty": 1548, "pending_qty": 1548, "received_qty": 0, "date": "2026-03-22"}, {"lot_no": "LT-06895", "design": "005-03", "issue_qty": 1188, "pending_qty": 1188, "received_qty": 0, "date": "2026-03-22"}, {"lot_no": "LT-07243", "design": "005-04", "issue_qty": 1170, "pending_qty": 1170, "received_qty": 0, "date": "2026-03-22"}, {"lot_no": "LT-06938", "design": "005-01", "issue_qty": 1236, "pending_qty": 1236, "received_qty": 0, "date": "2026-03-22"}, {"lot_no": "LT-06960", "design": "005-02", "issue_qty": 1134, "pending_qty": 1134, "received_qty": 0, "date": "2026-03-10"}, {"lot_no": "LT-06950", "design": "005-02", "issue_qty": 1620, "pending_qty": 1081, "received_qty": 539, "date": "2026-03-10"}, {"lot_no": "LT-06966", "design": "005-02", "issue_qty": 1242, "pending_qty": 1242, "received_qty": 0, "date": "2026-03-10"}, {"lot_no": "LT-06922", "design": "005-03", "issue_qty": 1233, "pending_qty": 824, "received_qty": 409, "date": "2026-03-09"}, {"lot_no": "LT-06945", "design": "005-01", "issue_qty": 1296, "pending_qty": 956, "received_qty": 340, "date": "2026-03-09"}, {"lot_no": "LT-06949", "design": "005-02", "issue_qty": 1602, "pending_qty": 1602, "received_qty": 0, "date": "2026-03-08"}, {"lot_no": "LT-06967", "design": "005-02", "issue_qty": 1080, "pending_qty": 894, "received_qty": 186, "date": "2026-03-02"}, {"lot_no": "LT-06890", "design": "005-04", "issue_qty": 929, "pending_qty": 797, "received_qty": 132, "date": "2026-03-02"}, {"lot_no": "LT-06933", "design": "005-01", "issue_qty": 803, "pending_qty": 802, "received_qty": 1, "date": "2026-03-02"}]},
+  ],
+  fob: [],
+};
+
+// ── DESIGN → SECTION DATA (from CSV) ──
+const DESIGN_SECTIONS = {"001-01":["Bottom","Dupatta","Top"],"001-02":["Bottom","Dupatta","Top"],"001-03":["Bottom","Dupatta","Top"],"001-04":["Bottom","Dupatta","Top"],"002-01":["Bottom","Dupatta","Top"],"002-02":["Bottom","Dupatta","Top"],"002-03":["Bottom","Dupatta","Top"],"002-04":["Bottom","Dupatta","Top"],"002-05":["Bottom","Dupatta","Top"],"002-06":["Bottom","Dupatta","Top"],"002-07":["Bottom","Dupatta","Top"],"005-01":["Bottom","Dupatta","Top"],"005-02":["Bottom","Dupatta","Top"],"005-03":["Bottom","Dupatta","Top"],"005-04":["Bottom","Dupatta","Top"],"005-07":["Bottom","Dupatta","Top"],"008-01":["Bottom","Dupatta","Top"],"008-02":["Bottom","Dupatta","Top"],"008-03":["Bottom","Dupatta","Top"],"008-04":["Bottom","Dupatta","Top"],"009-01":["Bottom","Dupatta","Top"],"009-02":["Bottom","Dupatta","Top"],"009-03":["Bottom","Dupatta","Top"],"009-04":["Bottom","Dupatta","Top"],"010-01":["Bottom","Dupatta","Top"],"010-02":["Bottom","Dupatta","Top"],"010-03":["Bottom","Dupatta","Top"],"010-04":["Bottom","Dupatta","Top"],"011-01":["Bottom","Dupatta","Top"],"011-02":["Bottom","Dupatta","Top"],"011-03":["Bottom","Dupatta","Top"],"011-04":["Bottom","Dupatta","Top"],"015-01":["Bottom","Dupatta","Top"],"015-02":["Bottom","Dupatta","Top"],"015-03":["Bottom","Dupatta","Top"],"015-04":["Bottom","Dupatta","Top"],"018-01":["Bottom","Dupatta","Top"],"018-03":["Bottom","Dupatta","Top"],"018-04":["Bottom","Dupatta","Top"],"019-01":["Bottom","Dupatta","Top"],"020-01":["Bottom","Dupatta","Top"],"020-02":["Bottom","Dupatta","Top"],"020-03":["Bottom","Dupatta","Top"],"020-04":["Bottom","Dupatta","Top"],"021-01":["Bottom","Dupatta","Top"],"021-02":["Bottom","Dupatta","Top"],"021-03":["Bottom","Dupatta","Top"],"021-04":["Bottom","Dupatta","Top"],"022-01":["Bottom","Dupatta","Top"],"022-02":["Bottom","Dupatta","Top"],"022-03":["Bottom","Dupatta","Top"],"022-04":["Bottom","Dupatta","Top"],"026-01":["Bottom","Dupatta","Top"],"026-02":["Bottom","Dupatta","Top"],"026-03":["Bottom","Dupatta","Top"],"026-04":["Bottom","Dupatta","Top"],"033-01":["Bottom","Dupatta","Top"],"033-02":["Bottom","Dupatta","Top"],"033-03":["Bottom","Dupatta","Top"],"033-04":["Bottom","Dupatta","Top"],"320-01":["Bottom","Top"],"320-02":["Bottom","Top"],"320-03":["Bottom","Top"],"320-04":["Bottom","Top"],"324-01":["Bottom","Top"],"324-02":["Bottom","Top"],"324-03":["Bottom","Top"],"324-04":["Bottom","Top"],"335-01":["Bottom","Top"],"335-02":["Bottom","Top"],"335-03":["Bottom","Top"],"335-04":["Bottom","Top"],"336-01":["Bottom","Top"],"336-02":["Bottom","Top"],"336-03":["Bottom","Top"],"336-04":["Bottom","Top"],"365-01":["Bottom","Top"],"365-02":["Bottom","Top"],"365-03":["Bottom","Top"],"365-04":["Bottom","Top"],"371-01":["Bottom","Dupatta","Top"],"371-02":["Bottom","Dupatta","Top"],"371-03":["Bottom","Dupatta","Top"],"371-04":["Bottom","Dupatta","Top"],"376-01":["Bottom","Top"],"376-02":["Bottom","Top"],"376-03":["Bottom","Top"],"376-04":["Bottom","Top"],"379-01":["Bottom","Dupatta","Top"],"379-02":["Bottom","Dupatta","Top"],"379-03":["Bottom","Dupatta","Top"],"379-04":["Bottom","Dupatta","Top"],"382-01":["Bottom","Dupatta","Top"],"382-02":["Bottom","Dupatta","Top"],"382-03":["Bottom","Dupatta","Top"],"382-04":["Bottom","Dupatta","Top"],"412-01":["Bottom","Top"],"412-02":["Bottom","Top"],"412-03":["Bottom","Top"],"412-04":["Bottom","Top"],"417-01":["Bottom","Dupatta","Top"],"417-02":["Bottom","Dupatta","Top"],"417-03":["Bottom","Dupatta","Top"],"417-04":["Bottom","Dupatta","Top"],"417-05":["Bottom","Dupatta","Top"],"417-06":["Bottom","Dupatta","Top"],"417-07":["Bottom","Dupatta","Top"],"444-01":["Bottom","Dupatta","Top"],"444-02":["Bottom","Dupatta","Top"],"444-03":["Bottom","Dupatta","Top"],"444-04":["Bottom","Dupatta","Top"],"444-05":["Bottom","Dupatta","Top"],"444-06":["Bottom","Dupatta","Top"],"444-07":["Bottom","Dupatta","Top"],"444-08":["Bottom","Dupatta","Top"],"467-01":["Bottom","Top"],"467-02":["Bottom","Top"],"467-03":["Bottom","Top"],"467-04":["Bottom","Top"],"483-01":["Bottom","Top"],"483-02":["Bottom","Top"],"483-03":["Bottom","Top"],"483-04":["Bottom","Top"],"490-01":["Bottom","Dupatta","Top"],"490-02":["Bottom","Dupatta","Top"],"490-03":["Bottom","Dupatta","Top"],"490-04":["Bottom","Dupatta","Top"],"498-01":["Bottom","Top"],"498-02":["Bottom","Top"],"498-03":["Bottom","Top"],"498-04":["Bottom","Top"],"498-05":["Bottom","Top"],"498-06":["Bottom","Top"],"526-01":["Bottom","Top"],"526-02":["Bottom","Top"],"526-03":["Bottom","Top"],"526-04":["Bottom","Top"],"550-01":["Bottom","Dupatta","Top"],"550-02":["Bottom","Dupatta","Top"],"550-03":["Bottom","Dupatta","Top"],"550-04":["Bottom","Dupatta","Top"]};
+
+let _selectedDesign = '';
+let _selectedSections = new Set();
+
+// ── DESIGN SEARCH ──
+const DESIGN_ALL = Object.keys(DESIGN_SECTIONS);
+
+function designSearch(q) {
+  const query = q.trim().toUpperCase();
+  document.getElementById('design-clear-btn').classList.toggle('show', q.length > 0);
+  const filtered = query
+    ? DESIGN_ALL.filter(d => d.includes(query)).slice(0, 80)
+    : DESIGN_ALL.slice(0, 80);
+  renderDesignDropdown(filtered, true);
+}
+
+function designDropdownOpen() {
+  const q = document.getElementById('design-search-inp').value.trim().toUpperCase();
+  const filtered = q ? DESIGN_ALL.filter(d => d.includes(q)).slice(0, 80) : DESIGN_ALL.slice(0, 80);
+  renderDesignDropdown(filtered, true);
+}
+
+// ── FLOATING DROPDOWN (body-level, never clipped) ──
+let _ddFloating = null;
+
+function _getOrCreateFloatingDD() {
+  if (!_ddFloating) {
+    _ddFloating = document.createElement('div');
+    _ddFloating.id = 'design-dropdown-floating';
+    _ddFloating.style.cssText = `
+      display:none; position:fixed; background:#fff;
+      border:1.5px solid rgba(160,120,80,.18); border-radius:10px;
+      box-shadow:0 8px 24px rgba(120,70,20,.15),0 2px 6px rgba(120,70,20,.08);
+      z-index:99999; max-height:280px; overflow-y:auto;
+      flex-direction:column; min-width:260px;
+    `;
+    _ddFloating.addEventListener('scroll', e => e.stopPropagation());
+    document.body.appendChild(_ddFloating);
+  }
+  return _ddFloating;
+}
+
+function _positionFloatingDD() {
+  const inp = document.getElementById('design-input-row-el') || document.querySelector('.design-input-row');
+  if (!inp) return;
+  const rect = inp.getBoundingClientRect();
+  const dd = _getOrCreateFloatingDD();
+  dd.style.top  = (rect.bottom + 4) + 'px';
+  dd.style.left = rect.left + 'px';
+  dd.style.width = rect.width + 'px';
+}
+
+function renderDesignDropdown(list, open) {
+  const dd = _getOrCreateFloatingDD();
+  if (!open) { dd.style.display = 'none'; return; }
+
+  if (list.length === 0) {
+    dd.innerHTML = `<div class="design-no-results">No designs found</div>`;
+  } else {
+    dd.innerHTML = list.map(d => {
+      const secs = (DESIGN_SECTIONS[d] || []).join(', ');
+      return `<div class="design-opt${d === _selectedDesign ? ' active' : ''}" onmousedown="designSelect('${d}')">
+        <span>${d}</span>
+        <span class="design-opt-sections">${secs}</span>
+      </div>`;
+    }).join('');
+  }
+  _positionFloatingDD();
+  dd.style.display = 'flex';
+  dd.style.flexDirection = 'column';
+}
+
+function designSelect(design) {
+  _selectedDesign = design;
+  document.getElementById('design-search-inp').value = design;
+  document.getElementById('design-clear-btn').classList.add('show');
+  const dd = _getOrCreateFloatingDD();
+  dd.style.display = 'none';
+  renderSectionTags(DESIGN_SECTIONS[design] || []);
+}
+
+function designClear() {
+  _selectedDesign = '';
+  _selectedSections.clear();
+  document.getElementById('design-search-inp').value = '';
+  document.getElementById('design-clear-btn').classList.remove('show');
+  const dd = _getOrCreateFloatingDD();
+  if (dd) dd.style.display = 'none';
+  document.getElementById('section-tags').innerHTML = `<span class="section-empty">Select a design first</span>`;
+}
+
+function renderSectionTags(sections) {
+  _selectedSections = new Set(sections); // auto-select all
+  const wrap = document.getElementById('section-tags');
+  if (!sections.length) {
+    wrap.innerHTML = `<span class="section-empty">No sections for this design</span>`;
+    return;
+  }
+  wrap.innerHTML = sections.map(s =>
+    `<span class="section-tag selected" onclick="toggleSection('${s}')" id="sec-tag-${s}">${s}</span>`
+  ).join('');
+}
+
+function toggleSection(sec) {
+  if (_selectedSections.has(sec)) {
+    _selectedSections.delete(sec);
+    document.getElementById(`sec-tag-${sec}`).classList.remove('selected');
+  } else {
+    _selectedSections.add(sec);
+    document.getElementById(`sec-tag-${sec}`).classList.add('selected');
+  }
+}
+
+// Close floating dropdown on outside click
+document.addEventListener('click', e => {
+  const dd = _ddFloating;
+  const wrap = document.getElementById('design-wrap');
+  if (dd && !wrap?.contains(e.target) && !dd.contains(e.target)) {
+    dd.style.display = 'none';
+  }
+});
+
+// Reposition on scroll or resize
+window.addEventListener('scroll', () => { if (_ddFloating && _ddFloating.style.display !== 'none') _positionFloatingDD(); }, true);
+window.addEventListener('resize', () => { if (_ddFloating && _ddFloating.style.display !== 'none') _positionFloatingDD(); });
+
+const JOB_LABELS = {
+  stitch:'Only Stitch', cut_stitch:'Cut to Stitch', cut_pack:'Cut to Pack', fob:'FoB'
+};
+
+let selectedJob = null;
+
+// ── ALL-VENDORS PANEL ──
+let _avJob = 'all';
+let _avSortCol = 'batches';
+let _avSortDir = 'desc';
+let _avRangeDays = 30;         // 0 = all time, N = last N days, 'custom' = custom
+let _avCustomFrom = null;
+let _avCustomTo   = null;
+
+const JOB_ICON = { stitch:'🧵', cut_stitch:'✂️', cut_pack:'📦', fob:'🚢' };
+
+function avSetRange(val) {
+  _avRangeDays = val;
+  document.querySelectorAll('.av-range-btn').forEach(b => {
+    b.classList.toggle('av-range-active', String(b.dataset.days) === String(val));
+  });
+  const customEl = document.getElementById('av-custom-dates');
+  if (val === 'custom') {
+    customEl.classList.add('show');
+    // default to-date = today, from-date = 30d ago
+    const today = new Date();
+    const from  = new Date(today); from.setDate(from.getDate() - 30);
+    document.getElementById('av-date-to').value   = today.toISOString().slice(0,10);
+    document.getElementById('av-date-from').value = from.toISOString().slice(0,10);
+    return; // wait for Apply
+  } else {
+    customEl.classList.remove('show');
+  }
+  _avUpdateRangeBadge();
+  avRender();
+}
+
+function avApplyCustom() {
+  const from = document.getElementById('av-date-from').value;
+  const to   = document.getElementById('av-date-to').value;
+  if (!from || !to) { alert('Please select both From and To dates.'); return; }
+  _avCustomFrom = new Date(from);
+  _avCustomTo   = new Date(to); _avCustomTo.setHours(23,59,59,999);
+  _avUpdateRangeBadge();
+  avRender();
+}
+
+function _avGetDateWindow() {
+  const today = new Date();
+  if (_avRangeDays === 0) return { from: null, to: null };
+  if (_avRangeDays === 'custom') {
+    return { from: _avCustomFrom, to: _avCustomTo };
+  }
+  const from = new Date(today);
+  from.setDate(from.getDate() - _avRangeDays);
+  from.setHours(0,0,0,0);
+  return { from, to: today };
+}
+
+function _avUpdateRangeBadge() {
+  const el = document.getElementById('av-range-badge');
+  if (!el) return;
+  if (_avRangeDays === 0) { el.textContent = 'All Time'; return; }
+  if (_avRangeDays === 'custom') {
+    const f = document.getElementById('av-date-from').value;
+    const t = document.getElementById('av-date-to').value;
+    el.textContent = f && t ? `${f} → ${t}` : 'Custom range';
+    return;
+  }
+  const labels = { 30:'Last 30 days', 60:'Last 60 days', 90:'Last 90 days', 365:'Last 1 year' };
+  el.textContent = labels[_avRangeDays] || `Last ${_avRangeDays}d`;
+}
+
+function _avFilteredVendorStats(v) {
+  const { from, to } = _avGetDateWindow();
+  const allLots = v.lots || [];
+
+  // ACTIVE BATCHES: Any lot with pending_qty > 0 is active NOW,
+  // regardless of when it was issued. If it's still pending, it's still active.
+  const activeLots = allLots.filter(l => l.pending_qty > 0);
+
+  // PERIOD STATS: issue/received volume filtered by date window (for reporting)
+  const periodLots = (!from && !to)
+    ? allLots
+    : allLots.filter(l => {
+        const d = new Date(l.date);
+        return (!from || d >= from) && (!to || d <= to);
+      });
+
+  return {
+    batches:      activeLots.length,                                          // ALL lots with pending > 0 (always)
+    issue_qty:    periodLots.reduce((s,l) => s + l.issue_qty, 0),            // total issued in period
+    pending_qty:  activeLots.reduce((s,l) => s + l.pending_qty, 0),          // total pending from ALL active lots
+    received_qty: periodLots.reduce((s,l) => s + (l.received_qty||0), 0),    // total received in period
+  };
+}
+
+function _avBuildRows() {
+  const rows = [];
+  ['stitch','cut_stitch','cut_pack'].forEach(job => {
+    (VENDOR_DB[job]||[]).forEach(v => {
+      const filtered = _avFilteredVendorStats(v);
+      const merged = { ...v, ...filtered, job, jobLabel: JOB_LABELS[job] };
+      merged.score = scoreVendor(merged);
+      rows.push(merged);
+    });
+  });
+  return rows;
+}
+
+function avFilter(job) {
+  _avJob = job;
+  document.querySelectorAll('.av-tab').forEach(t => {
+    t.classList.toggle('av-tab-active', t.dataset.job === job);
+  });
+  avRender();
+}
+
+function avSort(col) {
+  if (_avSortCol === col) {
+    _avSortDir = _avSortDir === 'desc' ? 'asc' : 'desc';
+  } else {
+    _avSortCol = col;
+    _avSortDir = col === 'name' ? 'asc' : 'desc';
+  }
+  document.querySelectorAll('th.sortable').forEach(th => {
+    th.classList.remove('sort-asc','sort-desc');
+    if (th.dataset.col === col) th.classList.add(_avSortDir === 'asc' ? 'sort-asc' : 'sort-desc');
+  });
+  const labels = { name:'Name', batches:'Batches', avgDays:'Avg Days', debit:'Debit %',
+                   alter:'Alter %', cap:'Can Make' };
+  document.getElementById('av-sort-info').textContent =
+    `Sorted by ${labels[col]||col} ${_avSortDir==='asc'?'↑':'↓'}`;
+  avRender();
+}
+
+// ── Can Make cell: design chips with active/registered classification ──
+function _getVendorDesignClasses(v) {
+  const allDesigns = v.designs || [];
+  const activeLots = (v.lots || []).filter(l => l.pending_qty > 0);
+  const activeDesignSet = new Set(activeLots.map(l => l.design));
+  const active = allDesigns.filter(d => activeDesignSet.has(d));
+  const registered = allDesigns.filter(d => !activeDesignSet.has(d));
+  return { active, registered, total: allDesigns.length };
+}
+
+function _renderCanMakeCell(v) {
+  const { active, registered, total } = _getVendorDesignClasses(v);
+  const MAX_CHIPS = 4;
+  // Show active first, then registered, up to MAX_CHIPS
+  const showActive = active.slice(0, MAX_CHIPS);
+  let remaining = MAX_CHIPS - showActive.length;
+  const showReg = remaining > 0 ? registered.slice(0, remaining) : [];
+  const overflow = total - showActive.length - showReg.length;
+
+  let html = '<div style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:4px">';
+  showActive.forEach(d => {
+    html += `<span style="display:inline-flex;align-items:center;gap:3px;padding:2px 8px;border-radius:20px;font-size:9px;font-weight:700;font-family:'JetBrains Mono',monospace;background:var(--teal);color:#fff;white-space:nowrap"><span style="width:5px;height:5px;border-radius:50%;background:#fff;flex-shrink:0"></span>${d}</span>`;
+  });
+  showReg.forEach(d => {
+    html += `<span style="display:inline-flex;align-items:center;gap:3px;padding:2px 8px;border-radius:20px;font-size:9px;font-weight:700;font-family:'JetBrains Mono',monospace;background:var(--surface3);color:var(--text2);border:1px solid var(--border);white-space:nowrap">${d}</span>`;
+  });
+  if (overflow > 0) {
+    html += `<span style="display:inline-flex;align-items:center;padding:2px 8px;border-radius:20px;font-size:9px;font-weight:700;font-family:'JetBrains Mono',monospace;background:var(--surface3);color:var(--muted);border:1px solid var(--border)">+${overflow}</span>`;
+  }
+  html += '</div>';
+  html += `<div style="font-size:9px;font-family:'JetBrains Mono',monospace;color:var(--muted)">${active.length} active · ${registered.length} registered</div>`;
+  return html;
+}
+
+function avRender() {
+  const all = _avBuildRows();
+  const q = (document.getElementById('av-search')?.value || '').trim().toLowerCase();
+  let rows = all.filter(v => {
+    const jobOk = _avJob === 'all' || v.job === _avJob;
+    const qOk   = !q || v.name.toLowerCase().includes(q) || v.jobLabel.toLowerCase().includes(q);
+    return jobOk && qOk;
+  });
+
+  // sort
+  rows.sort((a,b) => {
+    let va = a[_avSortCol], vb = b[_avSortCol];
+    if (typeof va === 'string') va = va.toLowerCase(), vb = vb.toLowerCase();
+    if (va < vb) return _avSortDir==='asc' ? -1 : 1;
+    if (va > vb) return _avSortDir==='asc' ? 1 : -1;
+    return 0;
+  });
+
+  // Update tab counts
+  const counts = { all: all.length };
+  ['stitch','cut_stitch','cut_pack'].forEach(j => {
+    counts[j] = all.filter(v => v.job === j).length;
+  });
+  ['all','stitch','cut_stitch','cut_pack'].forEach(j => {
+    const el = document.getElementById('av-ct-'+j);
+    if (el) el.textContent = counts[j];
+  });
+  document.getElementById('av-total-badge').textContent = rows.length + ' vendor' + (rows.length!==1?'s':'');
+
+  // Summary strip
+  document.getElementById('avs-stitch').textContent = counts.stitch;
+  document.getElementById('avs-cut_stitch').textContent = counts.cut_stitch;
+  document.getElementById('avs-cut_pack').textContent = counts.cut_pack;
+  const totalCap = all.reduce((s,v) => s + (v.cap||0), 0);
+  document.getElementById('avs-cap').textContent = totalCap.toLocaleString('en-IN');
+
+  // Render rows
+  const tbody = document.getElementById('av-tbody');
+  if (!rows.length) {
+    tbody.innerHTML = `<tr><td colspan="8" class="av-empty">No vendors match your filter.</td></tr>`;
+    return;
+  }
+
+  // compute rank within filtered set
+  tbody.innerHTML = rows.map((v, i) => {
+    const rank = i + 1;
+    const rnkCls = rank===1?'r1':rank===2?'r2':rank===3?'r3':'rx';
+    const debitCls = v.debit > 2.5 ? 'p-danger' : v.debit > 1.5 ? 'p-warn' : 'p-ok';
+    const alterCls = v.alter > 3   ? 'p-danger' : v.alter > 2   ? 'p-warn' : 'p-ok';
+    const daysCls  = v.avgDays <= 14 ? 'p-ok' : v.avgDays <= 20 ? 'p-warn' : 'p-danger';
+    const jtCls = 'jt-' + v.job;
+    const trend = v.avgDays <= 13 ? '<span class="trend-pill tp-fast">▲ Fast</span>' :
+                  v.avgDays >= 20 ? '<span class="trend-pill tp-slow">▼ Slow</span>' :
+                  '<span class="trend-pill tp-stbl">~ Stable</span>';
+    const periodLabel = _avRangeDays === 0 ? 'all time' :
+                        _avRangeDays === 'custom' ? 'period' :
+                        `${_avRangeDays}d`;
+
+    const invoiceRate = parseFloat((v.invoice||'').replace(/[^\d.]/g,'')) || 0;
+    const debitAmt = (v.debit / 100) * invoiceRate * (v.received_qty || 0);
+    const debitAmtStr = debitAmt >= 1e5 ? '₹'+(debitAmt/1e5).toFixed(2)+'L' : debitAmt >= 1e3 ? '₹'+Math.round(debitAmt).toLocaleString('en-IN') : '₹'+Math.round(debitAmt).toLocaleString('en-IN');
+    // DN count: estimate from completed lots (lots with received > 0 that had debit-worthy returns)
+    const completedLots = (v.lots||[]).filter(l => (l.received_qty||0) > 0);
+    const dnCount = Math.max(1, Math.round(completedLots.length * (v.debit / 100) * 1.5));
+    // Last DN date: most recent lot with received qty > 0
+    const lastDnLot = completedLots.sort((a,b) => new Date(b.date) - new Date(a.date))[0];
+    const lastDnDate = lastDnLot ? new Date(lastDnLot.date) : null;
+    const dnDateStr = lastDnDate ? lastDnDate.toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric'}) : '—';
+    const dnDaysAgo = lastDnDate ? Math.round((new Date() - lastDnDate) / 86400000) : 0;
+
+    return `<tr class="${rank===1?'row-hl':''}">
+      <td><span class="rnk ${rnkCls}">${rank}</span></td>
+      <td>
+        <div class="vname">${v.name}</div>
+        <div class="vsub">${v.city} · Cap: ${v.cap.toLocaleString('en-IN')}/mo</div>
+      </td>
+      <td><span class="card-tag ${jtCls}">${JOB_ICON[v.job]} ${v.jobLabel}</span></td>
+      <td>
+        <span class="click-cell" onclick="openBatchModal('${v.name}',${v.batches},'${v.jobLabel}',event)">
+          ${v.batches} active lots
+        </span>
+        <div style="font-size:11px;font-weight:800;color:var(--warn);font-family:'JetBrains Mono',monospace;margin-top:2px">${(v.pending_qty||0).toLocaleString('en-IN')} pcs</div>
+        <div class="vsub">pending · ${periodLabel}</div>
+      </td>
+      <td>
+        <div style="display:flex;align-items:center;gap:6px">
+          <span class="opill ${daysCls}">${v.avgDays}d</span>${trend}
+        </div>
+      </td>
+      <td>
+        <div style="font-size:12px;font-weight:800;color:${v.debit > 2.5 ? 'var(--danger)' : v.debit > 1.5 ? 'var(--warn)' : 'var(--green)'};font-family:'JetBrains Mono',monospace;letter-spacing:-.3px">${v.debit.toFixed(2)}%</div>
+        <div class="vsub" style="margin-top:2px">${debitAmtStr} · ${dnCount} DN</div>
+        <div class="vsub">${dnDateStr} · ${dnDaysAgo}d ago</div>
+      </td>
+      <td><span class="opill ${alterCls}">${v.alter.toFixed(1)}%</span></td>
+      <td style="white-space:normal;max-width:220px;cursor:pointer" onclick="openCapModal('${v.name}',${v.cap},'${v.jobLabel}',${rank},event)">
+        ${_renderCanMakeCell(v)}
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+// init set default sort arrow
+document.addEventListener('DOMContentLoaded', () => {
+  const batchesHeader = document.querySelector('th[data-col="batches"]');
+  if (batchesHeader) batchesHeader.classList.add('sort-desc');
+  _avUpdateRangeBadge();
+  avRender();
+});
+
+// Set date
+document.getElementById('date-badge').textContent = new Date().toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric'});
+
+function selectJobType(type) {
+  selectedJob = type;
+  document.querySelectorAll('.job-card').forEach(c => c.classList.remove('active'));
+  document.getElementById('jc-'+type).classList.add('active');
+  document.getElementById('config-panel').classList.remove('hidden');
+  document.getElementById('results-wrap').classList.add('hidden');
+  document.getElementById('config-panel').scrollIntoView({behavior:'smooth', block:'start'});
+}
+
+function scoreVendor(v) {
+  const total = v.issue_qty || 1;
+  const completion = (v.received_qty || 0) / total;
+  const pendingRatio = (v.pending_qty || 0) / total;
+  return (completion * 60) + (v.batches * 0.5) - (pendingRatio * 20) + ((5 - v.debit) * 5) + ((5 - v.alter) * 4);
+}
+
+function rankVendors(vendors) {
+  return vendors.map(v => ({...v, score: scoreVendor(v)}))
+    .sort((a,b) => b.score - a.score);
+}
+
+function splitLoad(ranked, qty) {
+  const top = ranked.slice(0, 3);
+  const totalScore = top.reduce((s,v) => s + v.score, 0);
+  return top.map((v,i) => {
+    const pct = v.score / totalScore;
+    const allotQty = Math.round(qty * pct);
+    const role = i === 0 ? 'primary' : i === 1 ? 'secondary' : 'support';
+    const roleLabel = i === 0 ? 'Primary' : i === 1 ? 'Secondary' : 'Support';
+    const estDays = Math.ceil(v.avgDays * (v.batches > 3 ? 1.0 : 1.1));
+    return {...v, pct, allotQty, role, roleLabel, estDays};
+  });
+}
+
+function runAnalysis() {
+  const design = _selectedDesign;
+  const subcat = Array.from(_selectedSections).join(', ') || 'All Sections';
+  const qty    = parseInt(document.getElementById('inp-qty').value);
+  const days   = parseInt(document.getElementById('inp-days').value);
+  if (!design || _selectedSections.size === 0 || !qty || !days) {
+    alert('Please select a design, at least one section, quantity, and delivery days.');
+    return;
+  }
+
+  const vendors = rankVendors(VENDOR_DB[selectedJob]);
+  const split   = splitLoad(vendors, qty);
+  const bestDays = Math.max(...split.map(v => v.estDays));  // parallel: slowest track
+  // Single vendor: top vendor handles full qty alone — scale avgDays by load ratio
+  const topVendor = vendors[0];
+  const loadRatio = qty / Math.max(topVendor.cap, 1);
+  const singleVendorDays = Math.ceil(topVendor.avgDays * (1 + loadRatio * 0.6));
+  const saved = Math.max(0, singleVendorDays - bestDays);
+  const totalCap = split.reduce((s,v) => s + v.cap, 0);
+  const jobLabel = JOB_LABELS[selectedJob];
+
+  // KPI
+  const accentColors = ['var(--teal)', 'var(--accent)', 'var(--green)', 'var(--warn)', 'var(--danger)'];
+  const kpis = [
+    { icon:'📦', cls:'ki-teal', label:'Total Pieces', val:qty.toLocaleString('en-IN'), sub: subcat+' · '+design, color:accentColors[0] },
+    { icon:'⚡', cls:'ki-green', label:'Est. Completion', val:bestDays+'d', sub:'with load split', color:accentColors[2] },
+    { icon:'🏭', cls:'ki-blue', label:'Vendors Assigned', val:split.length, sub:'top-ranked active', color:accentColors[1] },
+    { icon:'📉', cls:'ki-warn', label:'Days Saved', val:'+'+saved+'d', sub:'vs single vendor', color:saved>0?accentColors[2]:accentColors[3] },
+    { icon:'🎯', cls:'ki-red', label:'Capacity Pool', val:totalCap.toLocaleString('en-IN'), sub:'pieces across split', color:accentColors[1] },
+  ];
+  document.getElementById('kpi-row').innerHTML = kpis.map(k => `
+    <div class="kpi">
+      <div class="kpi-accent" style="background:${k.color}"></div>
+      <div class="kpi-body">
+        <div class="kpi-icon ${k.cls}">${k.icon}</div>
+        <div class="kpi-content">
+          <div class="kpi-label">${k.label}</div>
+          <div class="kpi-value">${k.val}</div>
+          <div class="kpi-sub">${k.sub}</div>
+        </div>
+      </div>
+      <div class="kpi-footer">
+        <span class="kpi-status">
+          <span class="kpi-status-dot" style="background:${k.color}"></span>
+          ${jobLabel}
+        </span>
+      </div>
+    </div>
+  `).join('');
+
+
+
+  // Split Panel
+  const roleStyles = {
+    primary:   { vc:'vc-primary',   fill:'var(--teal)',   role:'svcr-primary' },
+    secondary: { vc:'vc-secondary', fill:'var(--accent)', role:'svcr-secondary' },
+    support:   { vc:'vc-support',   fill:'var(--green)',  role:'svcr-support' },
+  };
+  const maxDays = Math.max(...split.map(v => v.estDays));
+
+  const vendorCards = split.map(v => {
+    const st = roleStyles[v.role];
+    return `
+      <div class="split-vc ${st.vc}">
+        <div class="split-vc-role ${st.role}">${v.roleLabel}</div>
+        <div class="split-vc-name">${v.name}</div>
+        <div class="split-vc-qty">${v.allotQty.toLocaleString('en-IN')}</div>
+        <div class="split-vc-qlbl">pcs · ${Math.round(v.pct*100)}% of total</div>
+        <div class="split-vc-bar">
+          <div class="split-vc-bar-fill" style="width:${Math.round(v.pct*100)}%;background:${st.fill}"></div>
+        </div>
+        <div class="split-vc-days">
+          <div class="split-vc-d" style="color:${st.fill}">${v.estDays}</div>
+          <div class="split-vc-dlbl">days est.</div>
+        </div>
+        <div class="split-vc-stats">
+          Batches: ${v.batches} lots&nbsp;&nbsp;Invoice: ${v.invoice}/pc<br>
+          Debit: ${v.debit.toFixed(1)}%&nbsp;&nbsp;Alter: ${v.alter.toFixed(1)}%
+        </div>
+      </div>
+    `;
+  }).join('');
+
+  const tlColors = ['var(--teal)', 'var(--accent)', 'var(--green)'];
+  const tlRows = split.map((v,i) => `
+    <div class="split-tl-row">
+      <div class="split-tl-name">${v.name}</div>
+      <div class="split-tl-track">
+        <div class="split-tl-fill" style="width:${Math.round((v.estDays/maxDays)*95)}%;background:${tlColors[i]}">
+          <div class="split-tl-fill-lbl">${v.allotQty.toLocaleString('en-IN')} pcs</div>
+        </div>
+      </div>
+      <div class="split-tl-days" style="color:${tlColors[i]}">${v.estDays}d</div>
+    </div>
+  `).join('');
+
+  document.getElementById('split-panel-wrap').innerHTML = `
+    <div class="split-hdr">
+      <div class="split-hdr-left">
+        <h4>⚡ Smart Load Split — ${jobLabel}</h4>
+        <p>${qty.toLocaleString('en-IN')} pcs · ${subcat} · ${design} · ${split.length} vendor parallel track</p>
+      </div>
+      <div class="split-hdr-right">
+        <div class="split-days">${bestDays}</div>
+        <div class="split-days-lbl">DAYS TO COMPLETION</div>
+      </div>
+    </div>
+    <div class="split-summary">
+      <div class="split-stat">
+        <div class="split-stat-val" style="color:var(--teal)">${bestDays}d</div>
+        <div class="split-stat-lbl">Est. delivery (split)</div>
+      </div>
+      <div class="split-stat">
+        <div class="split-stat-val" style="color:var(--green)">+${saved}d</div>
+        <div class="split-stat-lbl">Days saved vs single</div>
+      </div>
+      <div class="split-stat">
+        <div class="split-stat-val">${qty.toLocaleString('en-IN')}</div>
+        <div class="split-stat-lbl">Total pieces</div>
+      </div>
+      <div class="split-stat">
+        <div class="split-stat-val">${split.length}</div>
+        <div class="split-stat-lbl">Active vendors</div>
+      </div>
+    </div>
+    <div class="split-vendor-grid">${vendorCards}</div>
+    <div class="split-timeline">
+      <div class="split-tl-hdr">📅 DELIVERY TIMELINE — PARALLEL TRACKS</div>
+      ${tlRows}
+    </div>
+  `;
+
+  document.getElementById('results-wrap').classList.remove('hidden');
+  setTimeout(()=>{
+    document.getElementById('results-wrap').scrollIntoView({behavior:'smooth', block:'start'});
+  }, 50);
+}
+// ── BATCH MODAL ──
+function openBatchModal(vendorName, batches, jobLabel, e) {
+  if (e) e.stopPropagation();
+
+  // Find real vendor data
+  const allVendors = [...(VENDOR_DB.stitch||[]), ...(VENDOR_DB.cut_stitch||[]), ...(VENDOR_DB.cut_pack||[])];
+  const vendor = allVendors.find(v => v.name === vendorName);
+  const allLots = vendor?.lots || [];
+
+  // ACTIVE = ANY lot with pending_qty > 0, regardless of issue date.
+  // If goods are still pending, the lot is active NOW — period filter doesn't apply.
+  const activeLots = allLots.filter(l => l.pending_qty > 0);
+  const totalPending = activeLots.reduce((s, l) => s + l.pending_qty, 0);
+  const totalIssued  = activeLots.reduce((s, l) => s + l.issue_qty, 0);
+
+  document.getElementById('batch-title').textContent = `Active Lots — ${vendorName}`;
+  document.getElementById('batch-sub').textContent   = `${activeLots.length} lots with pending qty · ${totalPending.toLocaleString('en-IN')} pcs pending`;
+
+  const today = new Date();
+  const rows = activeLots.map(lot => {
+    const issueDate = new Date(lot.date);
+    const daysAgo = Math.round((today - issueDate) / 86400000);
+    const ageCls = daysAgo > 60 ? 'lot-overdue' : daysAgo > 30 ? 'lot-warn' : 'lot-ok';
+    const dateStr = issueDate.toLocaleDateString('en-IN', {day:'2-digit', month:'short', year:'numeric'});
+    const received = lot.issue_qty - lot.pending_qty;
+    return `<tr>
+      <td style="font-weight:800;color:var(--text)">${lot.lot_no}</td>
+      <td>${lot.design}</td>
+      <td>${lot.issue_qty.toLocaleString('en-IN')}</td>
+      <td style="font-weight:700;color:var(--green)">${received.toLocaleString('en-IN')}</td>
+      <td style="font-weight:700;color:var(--warn)">${lot.pending_qty.toLocaleString('en-IN')}</td>
+      <td>${dateStr}</td>
+      <td class="${ageCls}">${daysAgo}d</td>
+    </tr>`;
+  }).join('');
+
+  document.getElementById('batch-body').innerHTML = `
+    <div style="padding:10px 16px;background:var(--surface2);border-bottom:1px solid var(--border);display:flex;gap:20px;flex-wrap:wrap;">
+      <div style="text-align:center">
+        <div style="font-size:18px;font-weight:800;color:var(--teal);line-height:1">${activeLots.length}</div>
+        <div style="font-size:9px;color:var(--muted);font-family:'JetBrains Mono',monospace;margin-top:2px">ACTIVE LOTS</div>
+      </div>
+      <div style="text-align:center">
+        <div style="font-size:18px;font-weight:800;color:var(--warn);line-height:1">${totalPending.toLocaleString('en-IN')}</div>
+        <div style="font-size:9px;color:var(--muted);font-family:'JetBrains Mono',monospace;margin-top:2px">TOTAL PENDING</div>
+      </div>
+      <div style="text-align:center">
+        <div style="font-size:18px;font-weight:800;color:var(--accent);line-height:1">${totalIssued.toLocaleString('en-IN')}</div>
+        <div style="font-size:9px;color:var(--muted);font-family:'JetBrains Mono',monospace;margin-top:2px">TOTAL ISSUED</div>
+      </div>
+      <div style="text-align:center">
+        <div style="font-size:18px;font-weight:800;color:var(--green);line-height:1">${totalIssued > 0 ? Math.round(((totalIssued - totalPending) / totalIssued) * 100) : 0}%</div>
+        <div style="font-size:9px;color:var(--muted);font-family:'JetBrains Mono',monospace;margin-top:2px">COMPLETION</div>
+      </div>
+    </div>
+    <table class="jw-table">
+      <thead><tr>
+        <th>Lot No</th><th>Design</th><th>Issue Qty</th><th>Received Qty</th><th>Pending Qty</th><th>Issue Date</th><th>Age</th>
+      </tr></thead>
+      <tbody>${rows || `<tr><td colspan="7" style="text-align:center;padding:24px;color:var(--muted)">No active lots with pending quantity.</td></tr>`}</tbody>
+    </table>`;
+
+  const overdue = activeLots.filter(l => Math.round((today - new Date(l.date)) / 86400000) > 30).length;
+  document.getElementById('batch-footer').textContent =
+    `${activeLots.length} active lots (pending > 0) · ${overdue} over 30 days · All pending lots shown regardless of issue date · Age colour: teal ≤30d · orange ≤60d · red >60d`;
+  document.getElementById('batch-overlay').classList.add('open');
+}
+function closeBatchModal(e) {
+  if (e && e.target !== document.getElementById('batch-overlay')) return;
+  document.getElementById('batch-overlay').classList.remove('open');
+}
+
+// ── CAPACITY MODAL (rich tabbed) ──
+const DESIGN_POOL = [
+  '010-01','010-02','010-03','010-04','037-01','037-02','037-03','037-04',
+  '038-01','038-02','038-03','038-04','041-04','045-01','045-02','045-03',
+  '045-04','047-01','047-02','047-03','049-01','049-02','049-03','049-04',
+  '052-01','052-02','052-03','052-04','053-01','053-02','053-03','053-04',
+  '057-01','057-02','057-03','371-01','371-02','371-03','371-04','379-01',
+  '379-02','379-03','379-04','382-01','382-02','382-04','550-01','550-02',
+  '550-03','550-04','221-01','221-02','334-01','334-02','712-01','712-02',
+  '815-03','815-04','610-01','610-02'
+];
+
+let _capAllDesigns = [];
+let _capTab = 'active';
+
+function openCapModal(vendorName, cap, jobLabel, rank, e) {
+  if (e) e.stopPropagation();
+
+  // Find real vendor data
+  const allVendors = [...(VENDOR_DB.stitch||[]), ...(VENDOR_DB.cut_stitch||[]), ...(VENDOR_DB.cut_pack||[])];
+  const vendor = allVendors.find(v => v.name === vendorName);
+  const realDesigns = vendor?.designs || [];
+  const lots = vendor?.lots || [];
+
+  // Classify: Active = designs in lots with pending > 0, Registered = rest
+  const activeLots = lots.filter(l => l.pending_qty > 0);
+  const activeDesignSet = new Set(activeLots.map(l => l.design));
+  const pendingLotCount = activeLots.length;
+
+  _capAllDesigns = realDesigns.map(d => ({
+    no: d,
+    status: activeDesignSet.has(d) ? 'active' : 'registered'
+  }));
+
+  const activeCount = _capAllDesigns.filter(d => d.status === 'active').length;
+  const regCount    = _capAllDesigns.filter(d => d.status === 'registered').length;
+
+  document.getElementById('cap-modal-title').textContent = vendorName.toUpperCase();
+  document.getElementById('cap-modal-sub').textContent =
+    `${pendingLotCount} pending lots · ${realDesigns.length} designs`;
+  document.getElementById('cap-rank-num').textContent = `#${rank}`;
+
+  // Update tab count
+  const totalEl = document.getElementById('cap-cnt-total');
+  if (totalEl) totalEl.textContent = realDesigns.length;
+
+  _capTab = 'all';
+  _capRenderTabs();
+  _capRenderChips('');
+  document.getElementById('cap-search-input').value = '';
+  document.getElementById('cap-overlay').classList.add('open');
+}
+
+function _capRenderTabs() {
+  document.querySelectorAll('.cap-tab').forEach(t => {
+    t.classList.toggle('active', t.dataset.tab === _capTab);
+  });
+}
+
+function _capRenderChips(query) {
+  const filtered = _capAllDesigns.filter(d => {
+    const matchQ = !query || d.no.toUpperCase().includes(query.toUpperCase());
+    return matchQ;
+  });
+
+  const active = filtered.filter(d => d.status === 'active');
+  const reg    = filtered.filter(d => d.status === 'registered');
+  const totalActive = _capAllDesigns.filter(d => d.status === 'active').length;
+  const totalReg    = _capAllDesigns.filter(d => d.status === 'registered').length;
+
+  document.getElementById('cap-stats-txt').innerHTML =
+    `${_capAllDesigns.length} total &nbsp;·&nbsp; <span style="color:var(--teal)">${totalActive} active</span> &nbsp;·&nbsp; <span style="color:var(--accent)">${totalReg} registered</span>`;
+
+  const wrap = document.getElementById('cap-chips');
+  if (!filtered.length) {
+    wrap.innerHTML = `<div class="cap-empty">No designs match your search.</div>`;
+    return;
+  }
+
+  // Render active first, then registered — in a grid matching Image 2
+  let html = '';
+  active.forEach(d => {
+    html += `<div class="cap-chip" style="border-color:var(--teal);background:var(--teal-light)">
+      ${d.no}
+      <span class="cap-chip-badge cb-active">▶ Active</span>
+    </div>`;
+  });
+  reg.forEach(d => {
+    html += `<div class="cap-chip">
+      ${d.no}
+      <span class="cap-chip-badge cb-reg">★ Registered</span>
+    </div>`;
+  });
+  wrap.innerHTML = html;
+}
+
+function capSwitchTab(tab) {
+  _capTab = tab;
+  _capRenderTabs();
+  _capRenderChips((document.getElementById('cap-search-input')?.value || '').trim());
+}
+
+function capSearch(val) {
+  _capRenderChips(val.trim());
+}
+
+function closeCapModal(e) {
+  if (e && e.target !== document.getElementById('cap-overlay')) return;
+  document.getElementById('cap-overlay').classList.remove('open');
+}
+</script>
+
+<!-- ── BATCH MODAL ── -->
+<div id="batch-overlay" onclick="closeBatchModal(event)">
+  <div id="batch-modal">
+    <div class="jw-modal-hdr">
+      <div>
+        <div class="jw-modal-title" id="batch-title">Active Batches</div>
+        <div class="jw-modal-sub"  id="batch-sub">—</div>
+      </div>
+      <button class="jw-modal-close" onclick="closeBatchModal()">✕</button>
+    </div>
+    <div class="jw-modal-body" id="batch-body"></div>
+    <div class="jw-modal-footer" id="batch-footer"></div>
+  </div>
+</div>
+
+<!-- ── CAPACITY MODAL ── -->
+<div id="cap-overlay" onclick="closeCapModal(event)">
+  <div id="cap-modal">
+    <div class="cap-hdr">
+      <div class="cap-hdr-left">
+        <div class="cap-hdr-title" id="cap-modal-title">VENDOR NAME</div>
+        <div class="cap-hdr-sub"   id="cap-modal-sub">—</div>
+      </div>
+      <div class="cap-hdr-right">
+        <div class="cap-rank-badge">
+          <div class="cap-rank-num" id="cap-rank-num">#1</div>
+          <div class="cap-rank-lbl">rank</div>
+        </div>
+        <button class="cap-close" onclick="closeCapModal()">✕</button>
+      </div>
+    </div>
+    <div class="cap-tabs">
+      <div class="cap-tab active" data-tab="all" onclick="capSwitchTab('all')" style="gap:8px">
+        🎯 Can Make <span class="cap-tab-count" id="cap-cnt-total">0</span>
+      </div>
+    </div>
+    <div class="cap-search-wrap">
+      <input class="cap-search" id="cap-search-input" type="text"
+        placeholder="Search design number..." oninput="capSearch(this.value)">
+    </div>
+    <!-- Legend -->
+    <div style="padding:6px 22px 2px;display:flex;align-items:center;gap:16px;flex-wrap:wrap;flex-shrink:0;">
+      <div style="display:flex;align-items:center;gap:5px">
+        <span class="cap-chip-badge cb-active" style="font-size:9px">▶ Active</span>
+        <span style="font-size:9px;color:var(--muted);font-family:'JetBrains Mono',monospace">currently working</span>
+      </div>
+      <div style="display:flex;align-items:center;gap:5px">
+        <span class="cap-chip-badge cb-reg" style="font-size:9px">★ Registered</span>
+        <span style="font-size:9px;color:var(--muted);font-family:'JetBrains Mono',monospace">Article Master</span>
+      </div>
+    </div>
+    <div class="cap-stats-bar" id="cap-stats-txt">—</div>
+    <div class="cap-chips-wrap">
+      <div class="cap-chips" id="cap-chips"></div>
+    </div>
+  </div>
+</div>
+
+</body>
+</html>

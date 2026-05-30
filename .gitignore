@@ -1,0 +1,19 @@
+# Node
+ppc-dashboard/backend/node_modules/
+ppc-dashboard/backend/cache.json
+
+# Python
+venv/
+__pycache__/
+*.pyc
+*.pyo
+
+# Raw ERP data exports
+*.csv
+
+# Debug files
+ppc-dashboard/backend/debug_debit.js
+
+# OS
+.DS_Store
+Thumbs.db

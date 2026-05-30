@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Production Planning & Control (PPC)</title>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;0,700;1,400;1,600&family=Nunito:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<!-- ── HEADER ── -->
+<div class="header">
+  <div class="header-left">
+    <div class="hicon">🧵</div>
+    <div>
+      <h1>Production Planning & Control (PPC)</h1>
+      <p>THIRD-PARTY VENDOR MANAGEMENT · LOAD SPLIT · DELIVERY OPTIMISATION</p>
+    </div>
+  </div>
+  <div class="header-right">
+    <div class="live-badge" id="live-badge" onclick="refreshData()" title="Click to refresh data from Firebase" style="cursor:pointer">
+      <div class="live-dot"></div> LIVE
+      <span id="last-synced" style="font-size:10px;margin-left:6px;opacity:0.75"></span>
+    </div>
+    <div class="date-badge" id="date-badge">—</div>
+  </div>
+</div>
+
+<!-- ── STEP 1: JOB TYPE ── -->
+<div class="step-panel">
+  <div class="step-hdr">
+    <div class="step-hdr-num">1</div>
+    <div>
+      <h2>Select Job Work Type</h2>
+      <p>Choose the category of third-party job work to route to vendors</p>
+    </div>
+  </div>
+  <div class="step-body">
+    <div class="job-grid">
+      <div class="job-card" id="jc-stitch" onclick="selectJobType('stitch')">
+        <div class="jc-check">✓</div>
+        <span class="jc-icon">🧵</span>
+        <div class="jc-name">Only Stitch</div>
+        <div class="jc-tag">Fabric-in, Stitch-out</div>
+      </div>
+      <div class="job-card" id="jc-cut_stitch" onclick="selectJobType('cut_stitch')">
+        <div class="jc-check">✓</div>
+        <span class="jc-icon">✂️</span>
+        <div class="jc-name">Cut to Stitch</div>
+        <div class="jc-tag">Cut + Assemble</div>
+      </div>
+      <div class="job-card" id="jc-cut_pack" onclick="selectJobType('cut_pack')">
+        <div class="jc-check">✓</div>
+        <span class="jc-icon">📦</span>
+        <div class="jc-name">Cut to Pack</div>
+        <div class="jc-tag">End-to-End Process</div>
+      </div>
+      <div class="job-card" id="jc-fob" onclick="selectJobType('fob')">
+        <div class="jc-check">✓</div>
+        <span class="jc-icon">🚢</span>
+        <div class="jc-name">FoB</div>
+        <div class="jc-tag">Free on Board Export</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── STEP 2: ORDER CONFIG ── -->
+<div class="step-panel hidden" id="config-panel">
+  <div class="step-hdr">
+    <div class="step-hdr-num">2</div>
+    <div>
+      <h2>Order Configuration</h2>
+      <p>Specify design, section, quantity and delivery target</p>
+    </div>
+  </div>
+  <div class="step-body">
+    <div class="config-grid">
+      <div class="fg">
+        <label>Design Number</label>
+        <div class="design-wrap" id="design-wrap">
+          <div class="design-input-row">
+            <span class="design-search-icon">🔍</span>
+            <input class="design-search-inp" id="design-search-inp" type="text"
+              placeholder="Search e.g. 417-03"
+              oninput="designSearch(this.value)"
+              onfocus="designDropdownOpen()"
+              autocomplete="off">
+            <button class="design-clear-btn" id="design-clear-btn" onclick="designClear()">✕</button>
+          </div>
+          <div class="design-dropdown" id="design-dropdown"></div>
+        </div>
+      </div>
+      <div class="fg">
+        <label>Section</label>
+        <div class="section-tags-wrap" id="section-tags">
+          <span class="section-empty">Select a design first</span>
+        </div>
+      </div>
+      <div class="fg">
+        <label>Quantity (Pieces)</label>
+        <input type="number" id="inp-qty" placeholder="e.g. 500" min="50" max="20000">
+      </div>
+      <div class="fg">
+        <label>Expected Delivery (Days)</label>
+        <input type="number" id="inp-days" placeholder="e.g. 21" min="5" max="90">
+      </div>
+      <button class="find-btn" id="find-btn" onclick="runAnalysis()">
+        🔍 Find &amp; Split
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ── RESULTS ── -->
+<div id="results-wrap" class="hidden">
+  <!-- KPI Row -->
+  <div class="kpi-row animate-in" id="kpi-row"></div>
+  <!-- Split Panel -->
+  <div class="split-panel animate-in" id="split-panel-wrap"></div>
+</div>
+
+<!-- ── FULL VENDOR COMPARISON (always visible) ── -->
+<div class="av-panel" id="av-panel">
+  <div class="av-hdr">
+    <div class="av-hdr-left">
+      <div class="av-hdr-icon">📊</div>
+      <div>
+        <h2>Full Vendor Comparison</h2>
+        <p>ALL ACTIVE VENDORS · ACROSS ALL JOB WORK TYPES · RANKED BY PERFORMANCE SCORE</p>
+      </div>
+    </div>
+    <div class="av-hdr-right">
+      <span class="av-total-badge" id="av-total-badge">— vendors</span>
+    </div>
+  </div>
+
+  <div class="av-summary-strip" id="av-summary-strip" style="display:none">
+    <div class="av-ss"><div class="av-ss-val" id="avs-stitch">—</div><div class="av-ss-lbl">🧵 Only Stitch</div></div>
+    <div class="av-ss"><div class="av-ss-val" id="avs-cut_stitch">—</div><div class="av-ss-lbl">✂️ Cut to Stitch</div></div>
+    <div class="av-ss"><div class="av-ss-val" id="avs-cut_pack">—</div><div class="av-ss-lbl">📦 Cut to Pack</div></div>
+    <div class="av-ss"><div class="av-ss-val" id="avs-cap">—</div><div class="av-ss-lbl">🎯 Total Capacity / mo</div></div>
+  </div>
+
+
+  <div class="av-controls">
+    <div class="av-filter-tabs" id="av-filter-tabs">
+      <div class="av-tab av-tab-active" data-job="all" onclick="avFilter('all')">All Types <span class="av-tab-ct" id="av-ct-all">0</span></div>
+      <div class="av-tab" data-job="stitch" onclick="avFilter('stitch')">🧵 Stitch <span class="av-tab-ct" id="av-ct-stitch">0</span></div>
+      <div class="av-tab" data-job="cut_stitch" onclick="avFilter('cut_stitch')">✂️ Cut+Stitch <span class="av-tab-ct" id="av-ct-cut_stitch">0</span></div>
+      <div class="av-tab" data-job="cut_pack" onclick="avFilter('cut_pack')">📦 Cut+Pack <span class="av-tab-ct" id="av-ct-cut_pack">0</span></div>
+    </div>
+    <input class="av-search" id="av-search" type="text" placeholder="Search vendor name…" oninput="avRender()">
+    <div class="av-sort-info" id="av-sort-info">Sorted by Score ↓</div>
+  </div>
+
+  <div style="overflow-x:auto">
+    <table>
+      <thead>
+        <tr>
+          <th style="width:44px">Rank</th>
+          <th style="width:160px" class="sortable" data-col="name" onclick="avSort('name')">Vendor Name<span class="sort-arrow"></span></th>
+          <th style="width:120px">Job Work Type</th>
+          <th style="width:110px" class="sortable" data-col="batches" onclick="avSort('batches')">Active Batches<span class="sort-arrow"></span></th>
+          <th style="width:110px" class="sortable" data-col="avgDays" onclick="avSort('avgDays')">Avg Delivery<span class="sort-arrow"></span></th>
+          <th style="width:130px" class="sortable" data-col="debit" onclick="avSort('debit')">Debit %<span class="sort-arrow"></span></th>
+          <th style="width:75px" class="sortable" data-col="alter" onclick="avSort('alter')">Alter %<span class="sort-arrow"></span></th>
+          <th style="width:200px" class="sortable" data-col="cap" onclick="avSort('cap')">Can Make<span class="sort-arrow"></span></th>
+        </tr>
+      </thead>
+      <tbody id="av-tbody"></tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ── BATCH MODAL ── -->
+<div id="batch-overlay" onclick="closeBatchModal(event)">
+  <div id="batch-modal">
+    <div class="jw-modal-hdr">
+      <div>
+        <div class="jw-modal-title" id="batch-title">Active Batches</div>
+        <div class="jw-modal-sub"  id="batch-sub">—</div>
+      </div>
+      <button class="jw-modal-close" onclick="closeBatchModal()">✕</button>
+    </div>
+    <div class="jw-modal-body" id="batch-body"></div>
+    <div class="jw-modal-footer" id="batch-footer"></div>
+  </div>
+</div>
+
+<!-- ── CAPACITY MODAL ── -->
+<div id="cap-overlay" onclick="closeCapModal(event)">
+  <div id="cap-modal">
+    <div class="cap-hdr">
+      <div class="cap-hdr-left">
+        <div class="cap-hdr-title" id="cap-modal-title">VENDOR NAME</div>
+        <div class="cap-hdr-sub"   id="cap-modal-sub">—</div>
+      </div>
+      <div class="cap-hdr-right">
+        <div class="cap-rank-badge">
+          <div class="cap-rank-num" id="cap-rank-num">#1</div>
+          <div class="cap-rank-lbl">rank</div>
+        </div>
+        <button class="cap-close" onclick="closeCapModal()">✕</button>
+      </div>
+    </div>
+    <div class="cap-tabs">
+      <div class="cap-tab active" data-tab="all" onclick="capSwitchTab('all')" style="gap:8px">
+        🎯 Can Make <span class="cap-tab-count" id="cap-cnt-total">0</span>
+      </div>
+    </div>
+    <div class="cap-search-wrap">
+      <input class="cap-search" id="cap-search-input" type="text"
+        placeholder="Search design number..." oninput="capSearch(this.value)">
+    </div>
+    <!-- Legend -->
+    <div style="padding:6px 22px 2px;display:flex;align-items:center;gap:16px;flex-wrap:wrap;flex-shrink:0;">
+      <div style="display:flex;align-items:center;gap:5px">
+        <span class="cap-chip-badge cb-active" style="font-size:9px">▶ Active</span>
+        <span style="font-size:9px;color:var(--muted);font-family:'JetBrains Mono',monospace">currently working</span>
+      </div>
+      <div style="display:flex;align-items:center;gap:5px">
+        <span class="cap-chip-badge cb-reg" style="font-size:9px">★ Registered</span>
+        <span style="font-size:9px;color:var(--muted);font-family:'JetBrains Mono',monospace">Article Master</span>
+      </div>
+    </div>
+    <div class="cap-stats-bar" id="cap-stats-txt">—</div>
+    <div class="cap-chips-wrap">
+      <div class="cap-chips" id="cap-chips"></div>
+    </div>
+  </div>
+</div>
+
+<script src="config.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
