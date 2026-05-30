@@ -1,6 +1,6 @@
 const CONFIG = {
   // ── Backend API ──
-  API_BASE_URL: 'http://localhost:3001',
+  API_BASE_URL: '',
   API_ROUTES: {
     VENDORS: '/api/vendors',
     DESIGNS: '/api/designs',
