@@ -1,0 +1,8 @@
+ppc-dashboard/backend/node_modules
+ppc-dashboard/backend/cache.json
+venv/
+__pycache__/
+*.pyc
+*.csv
+.git
+.gitignore

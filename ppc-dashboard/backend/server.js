@@ -10,7 +10,10 @@ const { rankVendors, rankVendorsForSplit, splitLoad } = require('./analysis');
 
 const CACHE_PATH   = path.resolve(__dirname, 'cache.json');
 const DATA_PY_PATH = path.resolve(__dirname, '../../data.py');
-const PYTHON_PATH  = path.resolve(__dirname, '../../venv/Scripts/python.exe');
+const PYTHON_PATH  = process.env.PYTHON_PATH
+  || (process.platform === 'win32'
+      ? path.resolve(__dirname, '../../venv/Scripts/python.exe')
+      : 'python3');
 
 const app = express();
 app.use(cors({ origin: CORS_ORIGIN }));

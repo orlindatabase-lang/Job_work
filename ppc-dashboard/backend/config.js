@@ -1,5 +1,5 @@
 module.exports = {
-  PORT: 3001,
+  PORT: parseInt(process.env.PORT) || 3001,
   CORS_ORIGIN: '*',
   FRONTEND_DIR: '../frontend',
 
