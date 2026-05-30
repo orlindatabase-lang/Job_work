@@ -1,5 +1,6 @@
 # Node
 ppc-dashboard/backend/node_modules/
+erp-proxy/node_modules/
 ppc-dashboard/backend/cache.json
 
 # Python
@@ -13,6 +14,10 @@ __pycache__/
 
 # Debug files
 ppc-dashboard/backend/debug_debit.js
+
+# Env / secrets
+erp-proxy/.env
+.env
 
 # OS
 .DS_Store

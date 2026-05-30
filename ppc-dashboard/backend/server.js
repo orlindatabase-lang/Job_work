@@ -4,7 +4,8 @@ const path           = require('path');
 const fs             = require('fs');
 const { execSync }   = require('child_process');
 
-const { PORT, CORS_ORIGIN, FRONTEND_DIR, API_ROUTES, JOB_LABELS, REFRESH_INTERVAL_MS } = require('./config');
+const { PORT, CORS_ORIGIN, FRONTEND_DIR, API_ROUTES, JOB_LABELS, REFRESH_INTERVAL_MS,
+        ERP_BASE_URL, API_TOKEN, COMPANY_YEAR_ID, PROXY_KEY } = require('./config');
 const { loadFromCache } = require('./data');
 const { rankVendors, rankVendorsForSplit, splitLoad } = require('./analysis');
 
@@ -46,6 +47,13 @@ async function fetchAndRefresh() {
     execSync(`"${PYTHON_PATH}" "${DATA_PY_PATH}"`, {
       stdio: 'inherit',
       cwd:   path.resolve(__dirname, '../..'),
+      env:   {
+        ...process.env,
+        ERP_BASE_URL,
+        API_TOKEN,
+        COMPANY_YEAR_ID,
+        PROXY_KEY: PROXY_KEY || '',
+      },
     });
     console.log('✅ data.py done — cache.json updated.');
   } catch (err) {

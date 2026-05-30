@@ -5,9 +5,12 @@ import pandas as pd
 from datetime import datetime, timezone
 
 # ── ERP Configuration ─────────────────────────────────────────────────────────
-BASE_URL        = "http://190.92.175.131:8080/DigiBizzErpApi/api/UnknownCallerApi/GetPowerBiReports"
-API_TOKEN       = "aaaqqqwww111"
-COMPANY_YEAR_ID = "83"
+# On GCP: set ERP_BASE_URL to the proxy URL (e.g. https://your-ngrok-url.ngrok.io/...)
+# Locally: falls back to the direct ERP address
+BASE_URL        = os.environ.get("ERP_BASE_URL", "http://190.92.175.131:8080/DigiBizzErpApi/api/UnknownCallerApi/GetPowerBiReports")
+API_TOKEN       = os.environ.get("API_TOKEN",    "aaaqqqwww111")
+COMPANY_YEAR_ID = os.environ.get("COMPANY_YEAR_ID", "83")
+PROXY_KEY       = os.environ.get("PROXY_KEY", "")
 
 ISSUE_PROCESSES = [
     "Cut to Pack Issue",
@@ -35,6 +38,8 @@ def fetch_erp_data(view_name: str, company_year_id: str) -> pd.DataFrame:
         "CompanyYearId":    company_year_id,
         "Accept":           "application/json",
     }
+    if PROXY_KEY:
+        headers["x-proxy-key"] = PROXY_KEY
     try:
         resp = requests.get(BASE_URL, headers=headers, timeout=60)
         resp.raise_for_status()
